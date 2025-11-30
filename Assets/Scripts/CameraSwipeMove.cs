@@ -1,11 +1,14 @@
 using TGS;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class CameraSwipeMove : MonoBehaviour
 {
     [SerializeField] private TerrainGridSystem _terrainGridSystem;
     [SerializeField] private float verticalTiles = 20f;
     [SerializeField] private float horizontalTiles = 6f;
+
+    [SerializeField] private GameObject _marbleGameObject;
 
     private Vector2 _fingerStart;
     private bool _swiping;
@@ -29,6 +32,10 @@ public class CameraSwipeMove : MonoBehaviour
 
         _tileW = _terrainGridSystem.cellSize.x;
         _tileH = _terrainGridSystem.cellSize.y;
+
+        float marbleScale = _tileW * 0.45f;
+        
+        _marbleGameObject.transform.localScale = new Vector3(marbleScale, marbleScale, marbleScale);
     }
 
     void Update()
@@ -49,7 +56,8 @@ public class CameraSwipeMove : MonoBehaviour
         {
             _dragging = false;
         }
-
+        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            return;
         if (!_dragging) return;
         
         Vector2 current = Input.mousePosition;
