@@ -8,6 +8,11 @@ public class MarbleMovement : MonoBehaviour
     [SerializeField] private Transform _marble;
     [SerializeField] private TerrainGridSystem _terrainGridSystem;
     [SerializeField] private Slider _speedSlider;
+    //
+    [SerializeField] private float _normalSpeed = 2f;
+
+    [SerializeField] private float _superSlowSpeed = 0.0056f;
+    //
 
     private Vector3 _targetPosition;
     private bool _moving;
@@ -43,7 +48,8 @@ public class MarbleMovement : MonoBehaviour
     {
         if (!_moving) return;
 
-        float currentSpeed = _speedSlider.value;
+        float tValue = _speedSlider.value;
+        float currentSpeed = Mathf.Lerp(_superSlowSpeed, _normalSpeed, tValue);
 
         _marble.position = Vector3.MoveTowards(
             _marble.position, 
