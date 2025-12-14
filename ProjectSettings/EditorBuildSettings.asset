@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/MenuWithWeather.unity
+    guid: b1597f67b5ae880448017ae1846f47eb
+  - enabled: 1
     path: Assets/Scenes/RapidTgsPrototype.unity
     guid: b51bb7d7870a83a43913bf6d79a93a27
   m_configObjects:
