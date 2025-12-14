@@ -1,6 +1,7 @@
 using TGS;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
 
@@ -41,7 +42,11 @@ public class MarbleMovement : MonoBehaviour
     // phase 1B
     [SerializeField] private Renderer _groundRenderer;
     private Texture2D _heightmap;
-
+    
+    // phase 2
+    [Header("Weather Settings")]
+    [SerializeField] private WeatherManager _weatherManager;
+    
     // Store values of Sliders
     private float _neutralSpeedValue = 5f;
     private float _upHillSpeedValue = 50f;
@@ -89,6 +94,12 @@ public class MarbleMovement : MonoBehaviour
 
         RegisterOnValueChangeSliders();
         // Initial Setup
+        // Load Save Data
+        _neutralSpeedValue = PlayerPrefs.GetFloat("neutralspeed", _neutralSpeedValue);
+        _upHillSpeedValue = PlayerPrefs.GetFloat("uphillspeed", _upHillSpeedValue);
+        _downHillSpeedValue = PlayerPrefs.GetFloat("downhillspeed", _downHillSpeedValue);
+        //
+        
         _neutralSpeedSlider.value = _neutralSpeedValue;
         _upHillSSlowdownSlider.value = _upHillSpeedValue;
         _downHillBoostSlider.value = _downHillSpeedValue;
@@ -124,6 +135,10 @@ public class MarbleMovement : MonoBehaviour
             _neutralSpeedValue = _neutralSpeedSlider.value;
             _upHillSpeedValue = _upHillSSlowdownSlider.value;
             _downHillSpeedValue = _downHillBoostSlider.value;
+            PlayerPrefs.SetFloat("neutralspeed", _neutralSpeedValue);
+            PlayerPrefs.SetFloat("uphillspeed", _upHillSpeedValue);
+            PlayerPrefs.SetFloat("downhillspeed", _downHillSpeedValue);
+            PlayerPrefs.Save();
         }
 
         _panelGameObject.SetActive(_isShowConfigPanel);
@@ -245,7 +260,15 @@ public class MarbleMovement : MonoBehaviour
             speedFactor *= downHillFactor;
         }
 
-        float finalSpeed = baseSpeed * speedFactor;
+        // phase 2, calculate and apply weather condition
+        float weatherMultiplier = 1f;
+        if (_weatherManager != null)
+        {
+            weatherMultiplier = _weatherManager.GetTotalWeatherMultiplier();
+        }
+        
+        float finalSpeed = baseSpeed * speedFactor * weatherMultiplier;
+        
 
         float stepDistance = finalSpeed * Time.deltaTime;
         Vector3 nextPos = current + direction * stepDistance;
@@ -336,5 +359,10 @@ public class MarbleMovement : MonoBehaviour
         _neutralSpeedText.text = _neutralSpeedSlider.value.ToString("0");
         _upHillText.text = _upHillSSlowdownSlider.value.ToString("0") + "%";
         _downHillText.text = _downHillBoostSlider.value.ToString("0") + "%";
+    }
+
+    public void BackToMenu()
+    {
+        SceneManager.LoadScene("MenuWithWeather");
     }
 }

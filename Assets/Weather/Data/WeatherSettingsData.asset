@@ -1,0 +1,123 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 884319bf290d9604f92cdb4a487e7097, type: 3}
+  m_Name: WeatherSettingsData
+  m_EditorClassIdentifier: 
+  entries:
+  - Type: 0
+    isActive: 1
+    lowValue: 0.2605
+    highValue: 0.35
+    referenceMin: 0.25
+    referenceMax: 0.35
+  - Type: 1
+    isActive: 0
+    lowValue: 0.4125
+    highValue: 0.4472
+    referenceMin: 0.36
+    referenceMax: 0.5
+  - Type: 2
+    isActive: 1
+    lowValue: 0.51
+    highValue: 0.65
+    referenceMin: 0.51
+    referenceMax: 0.65
+  - Type: 3
+    isActive: 0
+    lowValue: 0.66
+    highValue: 0.8
+    referenceMin: 0.66
+    referenceMax: 0.8
+  - Type: 4
+    isActive: 0
+    lowValue: 0.3
+    highValue: 0.5
+    referenceMin: 0.3
+    referenceMax: 0.5
+  - Type: 5
+    isActive: 0
+    lowValue: 0.4
+    highValue: 0.6
+    referenceMin: 0.4
+    referenceMax: 0.6
+  - Type: 6
+    isActive: 0
+    lowValue: 0.7
+    highValue: 0.85
+    referenceMin: 0.7
+    referenceMax: 0.85
+  - Type: 7
+    isActive: 0
+    lowValue: 0.85
+    highValue: 0.95
+    referenceMin: 0.85
+    referenceMax: 0.95
+  - Type: 8
+    isActive: 0
+    lowValue: 0.96
+    highValue: 1
+    referenceMin: 0.96
+    referenceMax: 1
+  - Type: 9
+    isActive: 0
+    lowValue: 0.7
+    highValue: 0.8
+    referenceMin: 0.7
+    referenceMax: 0.8
+  - Type: 10
+    isActive: 0
+    lowValue: 0.81
+    highValue: 0.88
+    referenceMin: 0.81
+    referenceMax: 0.88
+  - Type: 11
+    isActive: 0
+    lowValue: 0.89
+    highValue: 0.95
+    referenceMin: 0.89
+    referenceMax: 0.95
+  - Type: 12
+    isActive: 0
+    lowValue: 0.4
+    highValue: 0.55
+    referenceMin: 0.4
+    referenceMax: 0.55
+  - Type: 13
+    isActive: 0
+    lowValue: 0.7
+    highValue: 0.85
+    referenceMin: 0.7
+    referenceMax: 0.85
+  - Type: 14
+    isActive: 0
+    lowValue: 0.9
+    highValue: 0.94
+    referenceMin: 0.9
+    referenceMax: 0.94
+  - Type: 15
+    isActive: 0
+    lowValue: 0.95
+    highValue: 0.98
+    referenceMin: 0.95
+    referenceMax: 0.98
+  - Type: 16
+    isActive: 0
+    lowValue: 0.25
+    highValue: 0.25
+    referenceMin: 0.25
+    referenceMax: 0.25
+  - Type: 17
+    isActive: 0
+    lowValue: 0.5
+    highValue: 0.5
+    referenceMin: 0.5
+    referenceMax: 0.5
