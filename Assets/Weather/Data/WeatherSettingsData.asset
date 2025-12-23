@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entries:
   - Type: 0
-    isActive: 1
+    isActive: 0
     lowValue: 0.2605
     highValue: 0.35
     referenceMin: 0.25
@@ -26,7 +26,7 @@ MonoBehaviour:
     referenceMin: 0.36
     referenceMax: 0.5
   - Type: 2
-    isActive: 1
+    isActive: 0
     lowValue: 0.51
     highValue: 0.65
     referenceMin: 0.51

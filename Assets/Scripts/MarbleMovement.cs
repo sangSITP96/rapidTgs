@@ -16,6 +16,18 @@ public class MarbleMovement : MonoBehaviour
     [SerializeField] private Slider _upHillSSlowdownSlider; // 0 - 100%
 
     [SerializeField] private Slider _downHillBoostSlider; // 0 - 200%;
+    //
+    [Header("Terrain masks")] 
+    [SerializeField] private Texture2D _heightmapTexture;
+    [SerializeField] private Texture2D _smallLakeMaskTexture;
+    [SerializeField] private Texture2D _bigLakeMaskTexture;
+    [SerializeField] private Texture2D _forestMaskTexture;
+    [SerializeField] private Texture2D _albedoTexture;
+
+    [Header("Forest Settings")] 
+    [SerializeField] private float _forestSlowdownFactor = 0.5f;
+    [SerializeField] private float _lakeMaskThreshold = 0.5f;
+    [SerializeField] private float _forestMaskThreshold = 0.5f;
 
     //
     [SerializeField] private float _normalSpeed = 2f;
@@ -112,7 +124,7 @@ public class MarbleMovement : MonoBehaviour
         _targetPosition = _marble.position;
         _lastFramePosition = _marble.position;
 
-        if (_groundRenderer != null)
+        if (_heightmapTexture == null && _groundRenderer != null)
         {
             _heightmap = _groundRenderer.material.mainTexture as Texture2D;
         }
@@ -267,15 +279,17 @@ public class MarbleMovement : MonoBehaviour
             weatherMultiplier = _weatherManager.GetTotalWeatherMultiplier();
         }
         
-        float finalSpeed = baseSpeed * speedFactor * weatherMultiplier;
+        // Apply forest slowdown at current position
+        float forestSlowdown = GetForestSlowdownFactor(current);
+        float finalSpeed = baseSpeed * speedFactor * weatherMultiplier * forestSlowdown;
         
 
         float stepDistance = finalSpeed * Time.deltaTime;
         Vector3 nextPos = current + direction * stepDistance;
 
-        float brightness = GetBrightnessAtPosition(nextPos);
+        //float brightness = GetBrightnessAtPosition(nextPos);
 
-        if (IsLake(brightness))
+        if (IsLake(nextPos))
         {
             _moving = false;
             return;
@@ -334,15 +348,93 @@ public class MarbleMovement : MonoBehaviour
 
         return 0.5f;
     }
-
-    private bool IsLake(float brightness)
+    //
+    private Vector2 GetUVFromWorldPosition(Vector3 worldPosition)
     {
+        if (_groundRenderer == null) return Vector2.zero;
+        Ray ray = new Ray(worldPosition + Vector3.up * 1f, Vector3.down);
+        if (Physics.Raycast(ray, out RaycastHit hit, 50f, _groundLayerMask))
+        {
+            return hit.textureCoord;
+        }
+        return Vector2.zero;
+    }
+
+    private float GetTextureValueAtPosition(Texture2D texture, Vector3 worldPosition)
+    {
+        if (texture == null)
+        {
+            return 0f;
+        }
+        
+        Vector2 uv = GetUVFromWorldPosition(worldPosition);
+        if (uv == Vector2.zero)
+        {
+            return 0f;
+        }
+        
+        int x = Mathf.Clamp(Mathf.FloorToInt(uv.x * texture.width), 0, texture.width - 1);
+        int y = Mathf.Clamp(Mathf.FloorToInt(uv.y * texture.height), 0, texture.height - 1);
+        Color pixel = texture.GetPixel(x, y);
+
+        // Return grayscale value
+        return (pixel.r + pixel.g + pixel.b) / 3f;
+    }
+
+    private bool IsLake(Vector3 worldPos)
+    {
+        if (_smallLakeMaskTexture != null)
+        {
+            float lakeValue = GetTextureValueAtPosition(_smallLakeMaskTexture, worldPos);
+            var isLake = lakeValue > _lakeMaskThreshold;
+            if (!isLake && _bigLakeMaskTexture != null)
+            {
+                lakeValue = GetTextureValueAtPosition(_bigLakeMaskTexture, worldPos);
+                return lakeValue > _lakeMaskThreshold;
+            }
+            else
+            {
+                return isLake;
+            }
+        }
+        
+        // Fallback to old method if texture not assigned
+        float brightness = GetBrightnessAtPosition(worldPos);
         return brightness < 0.05f;
+    }
+    
+    private bool IsInForest(Vector3 worldPos)
+    {
+        if (_forestMaskTexture == null)
+        {
+            return false;
+        }
+
+        float forestValue = GetTextureValueAtPosition(_forestMaskTexture, worldPos);
+        return forestValue > _forestMaskThreshold;
+    }
+    
+    private float GetForestSlowdownFactor(Vector3 worldPos)
+    {
+        if (IsInForest(worldPos))
+        {
+            return _forestSlowdownFactor;
+        }
+        return 1f;
     }
 
     private float GetHeightAtPosition(Vector3 worldPos)
     {
-        return GetBrightnessAtPosition(worldPos);
+        if (_heightmapTexture != null)
+        {
+            return GetTextureValueAtPosition(_heightmapTexture, worldPos);
+        }
+        // Fallback to old method if texture not assigned
+        if (_heightmap != null)
+        {
+            return GetBrightnessAtPosition(worldPos);
+        }
+        return 0.5f;
     }
 
     private void RegisterOnValueChangeSliders()

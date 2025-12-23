@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f289ec7744b06e41a22f8bc83e9f670, type: 3}
+  m_Name: WindBiasProfile
+  m_EditorClassIdentifier: 
+  biasChangeHours: 3
+  WeightWestToEast: 0.6
+  WeightWestToNorthEast: 0.15
+  WeightWestToSouthEast: 0.15
+  WeightSporadic: 0.1
+  SporadicMinMinutes: 10
+  SporadicMaxMinutes: 45
+  AllowTempEast: 1
+  AllowTempNorth: 1
+  AllowTempSouth: 1
+  WinStrength: 1
