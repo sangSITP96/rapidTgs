@@ -59,12 +59,18 @@ public class MarbleMovement : MonoBehaviour
     [Header("Weather Settings")]
     [SerializeField] private WeatherManager _weatherManager;
     
+    // Grid Visibility
+    [Header("Grid Visibility")] [SerializeField]
+    private GridVisibilityController _gridVisibility;
+    
     // Store values of Sliders
     private float _neutralSpeedValue = 5f;
     private float _upHillSpeedValue = 50f;
     private float _downHillSpeedValue = 0f;
 
     private bool _isShowConfigPanel = false;
+    
+    private Camera _camera;
 
     private enum SlopeState
     {
@@ -78,10 +84,23 @@ public class MarbleMovement : MonoBehaviour
     private Vector3 _lastFramePosition;
 
     private float _previousHeight = 0f;
+    
+    // cache delegates
+    private UnityEngine.Events.UnityAction _onOffPanelAction;
+    private UnityEngine.Events.UnityAction<float> _neutralSpeedAction;
+    private UnityEngine.Events.UnityAction<float> _upHillAction;
+    private UnityEngine.Events.UnityAction<float> _downHillAction;
 
 
     void Awake()
     {
+        //
+        _onOffPanelAction = OnOffSpeedConfigPanel;
+        _neutralSpeedAction = (x) => { _neutralSpeedText.text = x.ToString("0"); };
+        _upHillAction = (x) => { _upHillText.text = x.ToString("0") + "%"; };
+        _downHillAction = (x) => { _downHillText.text = x.ToString("0") + "%"; };
+        //
+        _camera = Camera.main;
         _onOffConfigPanelButton.onClick.RemoveAllListeners();
         _onOffConfigPanelButton.onClick.AddListener(() => { OnOffSpeedConfigPanel(); });
 
@@ -126,7 +145,7 @@ public class MarbleMovement : MonoBehaviour
 
         if (_heightmapTexture == null && _groundRenderer != null)
         {
-            _heightmap = _groundRenderer.material.mainTexture as Texture2D;
+            _heightmap = _groundRenderer.sharedMaterial.mainTexture as Texture2D;
         }
 
         _previousHeight = GetHeightAtPosition(_marble.position);
@@ -162,7 +181,7 @@ public class MarbleMovement : MonoBehaviour
         {
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
                 return;
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            Ray ray = _camera.ScreenPointToRay(Input.mousePosition);
 
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
@@ -172,6 +191,12 @@ public class MarbleMovement : MonoBehaviour
                 _currentSlopeState = SlopeState.Normal;
                 _distanceInCurrentState = 0f;
                 _previousHeight = GetHeightAtPosition(_marble.position);
+                
+                //
+                if (_gridVisibility != null)
+                {
+                    _gridVisibility.OnMarbleMovementStarted();
+                }
             }
         }
     }
@@ -330,7 +355,7 @@ public class MarbleMovement : MonoBehaviour
             Vector2 uv = hit.textureCoord;
 
             if (_heightmap == null)
-                _heightmap = _groundRenderer.material.mainTexture as Texture2D;
+                _heightmap = _groundRenderer.sharedMaterial.mainTexture as Texture2D;
 
             if (_heightmap == null)
                 return 0.5f;
@@ -439,11 +464,9 @@ public class MarbleMovement : MonoBehaviour
 
     private void RegisterOnValueChangeSliders()
     {
-        _neutralSpeedSlider.onValueChanged.AddListener(x => { _neutralSpeedText.text = x.ToString("0"); });
-
-        _upHillSSlowdownSlider.onValueChanged.AddListener(x => { _upHillText.text = x.ToString("0") + "%"; });
-
-        _downHillBoostSlider.onValueChanged.AddListener(x => { _downHillText.text = x.ToString("0") + "%"; });
+        _neutralSpeedSlider.onValueChanged.AddListener(_neutralSpeedAction);
+        _upHillSSlowdownSlider.onValueChanged.AddListener(_upHillAction);
+        _downHillBoostSlider.onValueChanged.AddListener(_downHillAction);
     }
 
     private void UpdateSliderTexts()
@@ -456,5 +479,29 @@ public class MarbleMovement : MonoBehaviour
     public void BackToMenu()
     {
         SceneManager.LoadScene("MenuWithWeather");
+    }
+    
+    private void OnDestroy()
+    {
+        // Remove all listeners
+        if (_onOffConfigPanelButton != null)
+        {
+            _onOffConfigPanelButton.onClick.RemoveListener(_onOffPanelAction);
+        }
+
+        if (_neutralSpeedSlider != null)
+        {
+            _neutralSpeedSlider.onValueChanged.RemoveListener(_neutralSpeedAction);
+        }
+
+        if (_upHillSSlowdownSlider != null)
+        {
+            _upHillSSlowdownSlider.onValueChanged.RemoveListener(_upHillAction);
+        }
+
+        if (_downHillBoostSlider != null)
+        {
+            _downHillBoostSlider.onValueChanged.RemoveListener(_downHillAction);
+        }
     }
 }

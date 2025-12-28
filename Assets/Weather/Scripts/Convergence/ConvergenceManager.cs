@@ -186,7 +186,7 @@ namespace Game.Weather.Convergence
             }
         }
 
-        private void OnDrawGizmos()
+        private void OnDrawGizmosSelected()
         {
             if (_points == null) return;
 

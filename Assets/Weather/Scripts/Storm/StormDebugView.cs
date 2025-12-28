@@ -10,6 +10,7 @@ namespace Game.Weather.Storm
         
         private LineRenderer _lineRenderer;
         private float _radius;
+        private Material _lineMaterial;
 
         private void Awake()
         {
@@ -18,7 +19,8 @@ namespace Game.Weather.Storm
             _lineRenderer.loop = true;
             _lineRenderer.widthMultiplier = 0.02f;
     
-            _lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+            _lineMaterial = new Material(Shader.Find("Sprites/Default"));
+            _lineRenderer.material = _lineMaterial;
     
             _lineRenderer.startColor = Color.red;
             _lineRenderer.endColor = Color.red;
@@ -30,7 +32,6 @@ namespace Game.Weather.Storm
 
         public void Initialize(float radius)
         {
-            UnityEngine.Debug.Log("Draw Circleeee");
             _radius = radius;
             DrawCircle();
         }
@@ -45,6 +46,41 @@ namespace Game.Weather.Storm
                 float z = Mathf.Sin(angle) * _radius;
                 
                 _lineRenderer.SetPosition(i, new Vector3(x, _yOffset, z));
+            }
+        }
+
+        public void UpdateState(StormState state)
+        {
+            if (state == StormState.Forming)
+            {
+                SetStateForming();
+            }
+            else if (state == StormState.Active)
+            {
+                SetStateActive();
+            }
+        }
+        
+        public void SetStateForming()
+        {
+            // Smaller, pulsing circle
+            _lineRenderer.startColor = Color.yellow;
+            _lineRenderer.endColor = Color.yellow;
+        }
+        
+        public void SetStateActive()
+        {
+            _lineRenderer.startColor = Color.red;
+            _lineRenderer.endColor = Color.red;
+        }
+        
+        private void OnDestroy()
+        {
+            // Destroy material khi object bị destroy
+            if (_lineMaterial != null)
+            {
+                Destroy(_lineMaterial);
+                _lineMaterial = null;
             }
         }
     }

@@ -60,17 +60,17 @@ public class ConvergenceDebugUI : MonoBehaviour
 
         private void Update()
         {
-            if (_convergenceManager == null) return;
-
-            if (_showInfoText && _infoText != null)
-            {
-                UpdateInfoText();
-            }
-
-            if (_showMarkers && _markerPrefab != null && _markersParent != null)
-            {
-                UpdateMarkers();
-            }
+            // if (_convergenceManager == null) return;
+            //
+            // if (_showInfoText && _infoText != null)
+            // {
+            //     UpdateInfoText();
+            // }
+            //
+            // if (_showMarkers && _markerPrefab != null && _markersParent != null)
+            // {
+            //     UpdateMarkers();
+            // }
         }
 
         private void UpdateInfoText()

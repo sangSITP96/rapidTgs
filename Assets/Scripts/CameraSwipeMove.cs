@@ -22,6 +22,12 @@ public class CameraSwipeMove : MonoBehaviour
     private bool _dragging = false;
     private Vector2 _lastMousePosition;
     
+    // Inertia system
+    private Vector2 _velocity;
+
+    [SerializeField] private float _inertiaDecay = 8f;
+    private const float VELOCITY_THRESHOLD = 0.001f;
+    
     Camera _camera;
 
     void Start()
@@ -50,21 +56,46 @@ public class CameraSwipeMove : MonoBehaviour
         {
             _dragging = true;
             _lastMousePosition = Input.mousePosition;
+            _velocity = Vector2.zero;
         }
 
         if (Input.GetMouseButtonUp(0))
         {
             _dragging = false;
         }
+
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+        {
+            _velocity = Vector2.zero;
             return;
-        if (!_dragging) return;
+        }
+
+        if (!_dragging)
+        {
+            if (_velocity.magnitude > VELOCITY_THRESHOLD)
+            {
+                float moveX1 = _velocity.x * (horizontalTiles * _tileW);
+                float moveZ1 = _velocity.y * (verticalTiles * _tileH);
+                
+                transform.position -= new Vector3(moveX1, 0f , moveZ1);
+
+                _velocity = Vector2.Lerp(_velocity, Vector2.zero, _inertiaDecay * Time.deltaTime);
+            }
+            else
+            {
+                _velocity = Vector2.zero;
+            }
+            return;
+        }
         
         Vector2 current = Input.mousePosition;
         Vector2 delta = current - _lastMousePosition;
 
         float normalizedX = delta.x / Screen.width;
         float normalizedY = delta.y / Screen.height;
+        
+        // Update Velocity
+        _velocity = new Vector2(normalizedX, normalizedY);
         
         float moveX = normalizedX * (horizontalTiles * _tileW);
         float moveZ = normalizedY * (verticalTiles * _tileH);

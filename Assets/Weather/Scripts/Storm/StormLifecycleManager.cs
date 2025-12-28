@@ -57,17 +57,32 @@ namespace Game.Weather.Storm
            for (int i = _storms.Count - 1; i >= 0; i--)
            {
                var storm = _storms[i];
+               // Check expired
                if (storm.IsExpired(now))
                {
-                   if (storm.view != null)
-                   {
-                       Destroy(storm.view.gameObject);
-                   }
+                   Debug.Log($"Destroy Storm with radius = {storm.Radius}  state = {storm.State}  expire = {storm.ExpireGameSeconds} start {storm.SpawnGameSeconds} and now is {now}");
                    
-                   storm.State = StormState.Dissipating;
-                   _storms.RemoveAt(i);
+                   Debug.Log($"[Storm {i}] ✅ EXPIRED! Destroying..."); // ← ADD
+                   DestroyStorm(storm, i);
+                   continue;
+               }
+        
+               if (storm.State == StormState.Exited)
+               {
+                   Debug.Log($"Destroy Storm with radius = {storm.Radius}  state = {storm.State}  expire = {storm.ExpireGameSeconds} start {storm.SpawnGameSeconds} and now is {now}");
+                   Debug.Log($"[Storm {i}] ✅ EXITED! Destroying..."); // ← ADD
+                   DestroyStorm(storm, i);
                }
            }
+       }
+       
+       private void DestroyStorm(Storm storm, int index)
+       {
+           if (storm.view != null)
+           {
+               Destroy(storm.view.gameObject);
+           }
+           _storms.RemoveAt(index);
        }
        
        //
@@ -96,7 +111,7 @@ namespace Game.Weather.Storm
 
            double durationHours = RollDurationHours();
            double durationSeconds = durationHours * SecondsPerHour;
-
+           
            var storm = new Storm
            {
                Position = position,
@@ -106,16 +121,20 @@ namespace Game.Weather.Storm
                SpawnGameSeconds = now,
                ExpireGameSeconds = now + durationSeconds
            };
-           
            var view = Instantiate(_stormDebugPrefab,
-               new Vector3(position.x, 0f, position.y),
+               new Vector3(position.x, 0.5f, position.y),
                Quaternion.identity);
            storm.view = view;
            
            _storms.Add(storm);
-           
            //
            view.Initialize(storm.Radius);
+           
+           // Set difference color to Forming Storm
+           if (storm.view != null)
+           {
+               storm.view.UpdateState(storm.State);
+           }
        }
 
        private double RollDurationHours()
@@ -126,6 +145,19 @@ namespace Game.Weather.Storm
            if(rand < 0.66f)
                return Random.Range(_stormConfig.MediumMin, _stormConfig.MediumMax);
            return Random.Range(_stormConfig.LargeMin,  _stormConfig.LargeMax);
+       }
+       
+       public void RemoveStormAt(int index)
+       {
+           if (index >= 0 && index < _storms.Count)
+           {
+               DestroyStorm(_storms[index], index);
+           }
+       }
+
+       public List<Storm> GetStormList()
+       {
+           return _storms;
        }
     }
 }

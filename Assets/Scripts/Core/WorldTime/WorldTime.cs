@@ -35,7 +35,7 @@ namespace Game.Core.WorldTime
                                       _config.StartSecond : 0);
         }
 
-        private void Update()
+        private void FixedUpdate()
         {
             if (IsPaused) return;
             if (_config == null) return;
@@ -88,7 +88,6 @@ namespace Game.Core.WorldTime
             {
                 TotalGameSeconds = newTotal;
             }
-            
             OnTimeAdvanced?.Invoke(deltaGameSeconds, TotalGameSeconds);
             PushClockChangedIfNeeded(force:false);
         }

@@ -9,12 +9,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 798b8f8fffab58d49ae3aacd6b5b7084, type: 3}
-  m_Name: TimeConfig
+  m_Script: {fileID: 11500000, guid: f01f07a4edaefa1419686f8e1902e887, type: 3}
+  m_Name: StormMovementConfig
   m_EditorClassIdentifier: 
-  GameSecondsPerRealSecond: 60
-  StartHour: 6
-  StartMinute: 0
-  StartSecond: 0
-  Wrap24Hours: 0
-  AllowBeyond24Hours: 1
+  BaseSpeed: 8
+  WindWeight: 0.7
+  ConvergenceWeight: 0.3
+  DestroyIfOutsideBounds: 1
