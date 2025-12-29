@@ -26,6 +26,7 @@ public class CameraSwipeMove : MonoBehaviour
     private Vector2 _velocity;
 
     [SerializeField] private float _inertiaDecay = 8f;
+    [SerializeField] [Range(0f, 1f)] private float _velocitySmoothing = 0.3f; // NEW: Smoothing factor
     private const float VELOCITY_THRESHOLD = 0.001f;
     
     Camera _camera;
@@ -94,8 +95,10 @@ public class CameraSwipeMove : MonoBehaviour
         float normalizedX = delta.x / Screen.width;
         float normalizedY = delta.y / Screen.height;
         
-        // Update Velocity
-        _velocity = new Vector2(normalizedX, normalizedY);
+        // FIX: Use smoothing instead of direct assignment
+        // This prevents velocity from dropping to 0 when finger momentarily stops
+        Vector2 targetVelocity = new Vector2(normalizedX, normalizedY);
+        _velocity = Vector2.Lerp(_velocity, targetVelocity, _velocitySmoothing);
         
         float moveX = normalizedX * (horizontalTiles * _tileW);
         float moveZ = normalizedY * (verticalTiles * _tileH);
@@ -108,7 +111,7 @@ public class CameraSwipeMove : MonoBehaviour
     {
         float halfHeight = _camera.orthographicSize;
         float halfWidth = _camera.orthographicSize * _camera.aspect;
-        
+    
         float mapLeft = -MAP_WIDTH / 2;
         float mapRight = MAP_WIDTH / 2;
         float mapBottom = -MAP_HEIGHT / 2;
@@ -120,8 +123,50 @@ public class CameraSwipeMove : MonoBehaviour
         float maxZ = mapTop - halfHeight;
 
         Vector3 pos = transform.position;
-        pos.x = Mathf.Clamp(pos.x, minX, maxX);
-        pos.z = Mathf.Clamp(pos.z, minZ, maxZ);
+    
+        // Track if position was clamped
+        bool clampedX = false;
+        bool clampedZ = false;
+    
+        // Clamp X
+        if (pos.x < minX)
+        {
+            pos.x = minX;
+            clampedX = true;
+        }
+        else if (pos.x > maxX)
+        {
+            pos.x = maxX;
+            clampedX = true;
+        }
+    
+        // Clamp Z
+        if (pos.z < minZ)
+        {
+            pos.z = minZ;
+            clampedZ = true;
+        }
+        else if (pos.z > maxZ)
+        {
+            pos.z = maxZ;
+            clampedZ = true;
+        }
+    
         transform.position = pos;
+    
+        // FIX: Only clear velocity when NOT dragging
+        // When dragging, user is in direct control, don't interfere with velocity
+        if (!_dragging)
+        {
+            // Clear velocity when hitting boundary to prevent sticky feeling
+            if (clampedX)
+            {
+                _velocity.x = 0f;
+            }
+            if (clampedZ)
+            {
+                _velocity.y = 0f;
+            }
+        }
     }
 }
