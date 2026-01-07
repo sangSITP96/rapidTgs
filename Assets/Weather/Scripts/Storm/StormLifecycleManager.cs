@@ -60,8 +60,6 @@ namespace Game.Weather.Storm
                // Check expired
                if (storm.IsExpired(now))
                {
-                   Debug.Log($"Destroy Storm with radius = {storm.Radius}  state = {storm.State}  expire = {storm.ExpireGameSeconds} start {storm.SpawnGameSeconds} and now is {now}");
-                   
                    Debug.Log($"[Storm {i}] ✅ EXPIRED! Destroying..."); // ← ADD
                    DestroyStorm(storm, i);
                    continue;
@@ -69,7 +67,6 @@ namespace Game.Weather.Storm
         
                if (storm.State == StormState.Exited)
                {
-                   Debug.Log($"Destroy Storm with radius = {storm.Radius}  state = {storm.State}  expire = {storm.ExpireGameSeconds} start {storm.SpawnGameSeconds} and now is {now}");
                    Debug.Log($"[Storm {i}] ✅ EXITED! Destroying..."); // ← ADD
                    DestroyStorm(storm, i);
                }

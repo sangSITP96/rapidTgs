@@ -10,9 +10,6 @@ public class CameraSwipeMove : MonoBehaviour
 
     [SerializeField] private GameObject _marbleGameObject;
 
-    private Vector2 _fingerStart;
-    private bool _swiping;
-
     private float _tileW;
     private float _tileH;
 
@@ -24,16 +21,31 @@ public class CameraSwipeMove : MonoBehaviour
     
     // Inertia system
     private Vector2 _velocity;
-
     [SerializeField] private float _inertiaDecay = 8f;
-    [SerializeField] [Range(0f, 1f)] private float _velocitySmoothing = 0.3f; // NEW: Smoothing factor
     private const float VELOCITY_THRESHOLD = 0.001f;
     
-    Camera _camera;
+    // Velocity tracking for better inertia
+    private const int VELOCITY_SAMPLES = 3;
+    private Vector2[] _velocityHistory = new Vector2[VELOCITY_SAMPLES];
+    private int _velocityHistoryIndex = 0;
+    
+    [SerializeField] private float baseTileSensitivity = 10f;
+    
+    private Camera _camera;
 
     void Start()
     {
         _camera = GetComponent<Camera>();
+        //
+        float aspect = _camera.aspect;
+    
+        // Adjust tiles based on actual pan space
+        float panSpaceX = MAP_WIDTH - (_camera.orthographicSize * aspect * 2);
+        float panSpaceZ = MAP_HEIGHT - (_camera.orthographicSize * 2);
+    
+        horizontalTiles = baseTileSensitivity * (panSpaceZ / panSpaceX);
+        verticalTiles = baseTileSensitivity;
+        //
         
         transform.rotation = Quaternion.Euler(90f, 0, 0);
 
@@ -58,27 +70,44 @@ public class CameraSwipeMove : MonoBehaviour
             _dragging = true;
             _lastMousePosition = Input.mousePosition;
             _velocity = Vector2.zero;
+            
+            // Clear velocity history
+            for (int i = 0; i < VELOCITY_SAMPLES; i++)
+            {
+                _velocityHistory[i] = Vector2.zero;
+            }
+            _velocityHistoryIndex = 0;
         }
 
         if (Input.GetMouseButtonUp(0))
         {
             _dragging = false;
+            
+            // Calculate average velocity from recent samples for smooth inertia
+            Vector2 avgVelocity = Vector2.zero;
+            for (int i = 0; i < VELOCITY_SAMPLES; i++)
+            {
+                avgVelocity += _velocityHistory[i];
+            }
+            _velocity = avgVelocity / VELOCITY_SAMPLES;
         }
 
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
         {
             _velocity = Vector2.zero;
+            _dragging = false;
             return;
         }
 
         if (!_dragging)
         {
+            // Inertia mode
             if (_velocity.magnitude > VELOCITY_THRESHOLD)
             {
                 float moveX1 = _velocity.x * (horizontalTiles * _tileW);
                 float moveZ1 = _velocity.y * (verticalTiles * _tileH);
                 
-                transform.position -= new Vector3(moveX1, 0f , moveZ1);
+                transform.position -= new Vector3(moveX1, 0f, moveZ1);
 
                 _velocity = Vector2.Lerp(_velocity, Vector2.zero, _inertiaDecay * Time.deltaTime);
             }
@@ -89,21 +118,22 @@ public class CameraSwipeMove : MonoBehaviour
             return;
         }
         
+        // Dragging mode - direct movement
         Vector2 current = Input.mousePosition;
         Vector2 delta = current - _lastMousePosition;
 
         float normalizedX = delta.x / Screen.width;
         float normalizedY = delta.y / Screen.height;
         
-        // FIX: Use smoothing instead of direct assignment
-        // This prevents velocity from dropping to 0 when finger momentarily stops
-        Vector2 targetVelocity = new Vector2(normalizedX, normalizedY);
-        _velocity = Vector2.Lerp(_velocity, targetVelocity, _velocitySmoothing);
+        // Store velocity sample for inertia calculation on release
+        _velocityHistory[_velocityHistoryIndex] = new Vector2(normalizedX, normalizedY);
+        _velocityHistoryIndex = (_velocityHistoryIndex + 1) % VELOCITY_SAMPLES;
         
+        // Apply movement directly - no smoothing during drag
         float moveX = normalizedX * (horizontalTiles * _tileW);
         float moveZ = normalizedY * (verticalTiles * _tileH);
         
-        transform.position -= new Vector3(moveX, 0 , moveZ);
+        transform.position -= new Vector3(moveX, 0, moveZ);
         _lastMousePosition = current;
     }
 
@@ -123,47 +153,23 @@ public class CameraSwipeMove : MonoBehaviour
         float maxZ = mapTop - halfHeight;
 
         Vector3 pos = transform.position;
+        Vector3 oldPos = pos;
     
-        // Track if position was clamped
-        bool clampedX = false;
-        bool clampedZ = false;
-    
-        // Clamp X
-        if (pos.x < minX)
-        {
-            pos.x = minX;
-            clampedX = true;
-        }
-        else if (pos.x > maxX)
-        {
-            pos.x = maxX;
-            clampedX = true;
-        }
-    
-        // Clamp Z
-        if (pos.z < minZ)
-        {
-            pos.z = minZ;
-            clampedZ = true;
-        }
-        else if (pos.z > maxZ)
-        {
-            pos.z = maxZ;
-            clampedZ = true;
-        }
+        // Clamp position
+        pos.x = Mathf.Clamp(pos.x, minX, maxX);
+        pos.z = Mathf.Clamp(pos.z, minZ, maxZ);
     
         transform.position = pos;
     
-        // FIX: Only clear velocity when NOT dragging
-        // When dragging, user is in direct control, don't interfere with velocity
+        // Only clear velocity when NOT dragging and we actually hit boundary
         if (!_dragging)
         {
-            // Clear velocity when hitting boundary to prevent sticky feeling
-            if (clampedX)
+            // Clear velocity component if we hit boundary in that direction
+            if (pos.x != oldPos.x)
             {
                 _velocity.x = 0f;
             }
-            if (clampedZ)
+            if (pos.z != oldPos.z)
             {
                 _velocity.y = 0f;
             }

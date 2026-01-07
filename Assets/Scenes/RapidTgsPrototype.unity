@@ -1909,7 +1909,7 @@ MonoBehaviour:
   verticalTiles: 20
   horizontalTiles: 6
   _marbleGameObject: {fileID: 238296181}
-  _inertiaDecay: 4
+  _inertiaDecay: 8
 --- !u!114 &961739755
 MonoBehaviour:
   m_ObjectHideFlags: 0
