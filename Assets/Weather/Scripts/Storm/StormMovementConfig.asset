@@ -16,3 +16,6 @@ MonoBehaviour:
   WindWeight: 0.7
   ConvergenceWeight: 0.3
   DestroyIfOutsideBounds: 1
+  MergeOverlapThreshold: 0.9
+  MaxMergedRadius: 0.5
+  EnableMerging: 1

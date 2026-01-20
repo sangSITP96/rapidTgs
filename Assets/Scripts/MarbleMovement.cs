@@ -1,3 +1,4 @@
+using Game.Utilities;
 using TGS;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -314,7 +315,7 @@ public class MarbleMovement : MonoBehaviour
 
         //float brightness = GetBrightnessAtPosition(nextPos);
 
-        if (IsLake(nextPos))
+        if (TerrainMaskUtility.Instance.IsLake(nextPos))
         {
             _moving = false;
             return;
@@ -406,27 +407,27 @@ public class MarbleMovement : MonoBehaviour
         return (pixel.r + pixel.g + pixel.b) / 3f;
     }
 
-    private bool IsLake(Vector3 worldPos)
-    {
-        if (_smallLakeMaskTexture != null)
-        {
-            float lakeValue = GetTextureValueAtPosition(_smallLakeMaskTexture, worldPos);
-            var isLake = lakeValue > _lakeMaskThreshold;
-            if (!isLake && _bigLakeMaskTexture != null)
-            {
-                lakeValue = GetTextureValueAtPosition(_bigLakeMaskTexture, worldPos);
-                return lakeValue > _lakeMaskThreshold;
-            }
-            else
-            {
-                return isLake;
-            }
-        }
-        
-        // Fallback to old method if texture not assigned
-        float brightness = GetBrightnessAtPosition(worldPos);
-        return brightness < 0.05f;
-    }
+    // private bool IsLake(Vector3 worldPos)
+    // {
+    //     if (_smallLakeMaskTexture != null)
+    //     {
+    //         float lakeValue = GetTextureValueAtPosition(_smallLakeMaskTexture, worldPos);
+    //         var isLake = lakeValue > _lakeMaskThreshold;
+    //         if (!isLake && _bigLakeMaskTexture != null)
+    //         {
+    //             lakeValue = GetTextureValueAtPosition(_bigLakeMaskTexture, worldPos);
+    //             return lakeValue > _lakeMaskThreshold;
+    //         }
+    //         else
+    //         {
+    //             return isLake;
+    //         }
+    //     }
+    //     
+    //     // Fallback to old method if texture not assigned
+    //     float brightness = GetBrightnessAtPosition(worldPos);
+    //     return brightness < 0.05f;
+    // }
     
     private bool IsInForest(Vector3 worldPos)
     {

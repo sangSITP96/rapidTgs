@@ -1134,6 +1134,59 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 437012877}
   m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &513891001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 513891003}
+  - component: {fileID: 513891002}
+  m_Layer: 0
+  m_Name: TerrainMaskUtility
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &513891002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 513891001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 572ebea63b54a344f8cf02eabbdc644b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _groundRenderer: {fileID: 437012880}
+  _groundLayerMask:
+    serializedVersion: 2
+    m_Bits: 64
+  _smallLakeMaskTexture: {fileID: 2800000, guid: 751191f82f46d2b46bafb80554708e4d, type: 3}
+  _bigLakeMaskTexture: {fileID: 2800000, guid: 26d3ce17c1fa4d34498911341102d742, type: 3}
+  _lakeMaskThreshold: 0.5
+  _forestMaskTexture: {fileID: 2800000, guid: 82e4fa1f9e5328641add8467a1f3a344, type: 3}
+  _forestMaskThreshold: 0.5
+--- !u!4 &513891003
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 513891001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.90332, y: 1.0134884, z: 0.3169265}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &589474641
 GameObject:
   m_ObjectHideFlags: 0
@@ -1297,6 +1350,57 @@ RectTransform:
   m_AnchoredPosition: {x: -5, y: 0}
   m_SizeDelta: {x: -20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &661287897
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 661287899}
+  - component: {fileID: 661287898}
+  m_Layer: 0
+  m_Name: CloudToStormConverter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &661287898
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 661287897}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f44df32405d46e48b58890b2ad06a2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _worldTime: {fileID: 165181247}
+  _cloudManager: {fileID: 1257550265}
+  _convergenceManager: {fileID: 1771103796}
+  _stormLifecycle: {fileID: 1983138591}
+  _gatherRadius: 2
+  _minCloudsToFormStorm: 3
+  _checkIntervalSeconds: 5
+--- !u!4 &661287899
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 661287897}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.90332, y: 1.0134884, z: 0.3169265}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &696446333
 GameObject:
   m_ObjectHideFlags: 0
@@ -1616,6 +1720,41 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 907599908}
   m_CullTransparentMesh: 1
+--- !u!1 &923318558
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 923318559}
+  m_Layer: 0
+  m_Name: Managers
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &923318559
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 923318558}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.90332, y: 1.0134884, z: 0.3169265}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1771103797}
+  - {fileID: 1983138592}
+  - {fileID: 1257550264}
+  - {fileID: 1836677740}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &930387859
 GameObject:
   m_ObjectHideFlags: 0
@@ -1910,6 +2049,7 @@ MonoBehaviour:
   horizontalTiles: 6
   _marbleGameObject: {fileID: 238296181}
   _inertiaDecay: 8
+  baseTileSensitivity: 10
 --- !u!114 &961739755
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2760,6 +2900,65 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1257550263
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1257550264}
+  - component: {fileID: 1257550265}
+  m_Layer: 0
+  m_Name: CloudManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1257550264
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1257550263}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 923318559}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1257550265
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1257550263}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5cb98ae8ad480364b96f3aed4ff4cd00, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _worldTime: {fileID: 165181247}
+  _cloudSpawnTick: {fileID: 1415201269}
+  _windSystem: {fileID: 1251245094}
+  _lakeDetector: {fileID: 1440280630}
+  _convergenceManager: {fileID: 1771103796}
+  _coverageTracker: {fileID: 2044023812}
+  _cloudSpawnChance: 2
+  _cloudSpeed: 2
+  _spawnDuration: 2
+  _minLifetimeMinutes: 2
+  _maxLifetimeMinutes: 15
+  _convergenceAttractionRadius: 3
+  _convergenceSlowdownFactor: 0.3
+  _convergenceAttractionStrength: 0.5
+  _cloudPrefab: {fileID: 4531681223351712114, guid: 807065319216e8b49acd12819c123be3, type: 3}
 --- !u!1 &1281838205
 GameObject:
   m_ObjectHideFlags: 0
@@ -3450,6 +3649,52 @@ MonoBehaviour:
   ConformX: 1
   ConformY: 1
   Logging: 0
+--- !u!1 &1440280629
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1440280631}
+  - component: {fileID: 1440280630}
+  m_Layer: 0
+  m_Name: LakeDetector
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1440280630
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1440280629}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5070ca0c225d643448556601b74ba28b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _tgs: {fileID: 1023926753}
+  _terrainMaskUtility: {fileID: 513891002}
+--- !u!4 &1440280631
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1440280629}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.90332, y: 1.0134884, z: 0.3169265}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1557811065
 GameObject:
   m_ObjectHideFlags: 0
@@ -3854,6 +4099,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _worldTime: {fileID: 165181247}
   _config: {fileID: 11400000, guid: 1122c6457907962458349d158373d4cd, type: 2}
+  _convergenceVisualPrefab: {fileID: 1460607696571871441, guid: dcb06d574c4a50e4ea277a7f9f9ce382, type: 3}
+  _visualRadius: 0.15
   _terrainMin: {x: -4, y: -3}
   _terrainMax: {x: 4, y: 3}
 --- !u!4 &1771103797
@@ -3864,12 +4111,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1771103795}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 1.90332, y: -1.0134884, z: -0.3169265}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 923318559}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1836677738
 GameObject:
@@ -3910,12 +4157,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1836677738}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1434.3774, y: 1528.5808, z: -2.8908935}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 1436.2808, y: 1527.5674, z: -3.20782}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 923318559}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1836677741
 MonoBehaviour:
@@ -4326,6 +4573,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1983138592}
   - component: {fileID: 1983138591}
+  - component: {fileID: 1983138593}
   m_Layer: 0
   m_Name: StormLifecycleManager
   m_TagString: Untagged
@@ -4350,6 +4598,7 @@ MonoBehaviour:
   _stormConfig: {fileID: 11400000, guid: d5054daf927b3964dad0f50ddbee32b3, type: 2}
   _maxActiveStorms: 6
   _stormDebugPrefab: {fileID: 1501268410314274904, guid: 78ccf3d469a0dc2429793a7455444089, type: 3}
+  _enableRandomSpawn: 0
 --- !u!4 &1983138592
 Transform:
   m_ObjectHideFlags: 0
@@ -4358,13 +4607,32 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1983138590}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0.5}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 1.90332, y: -1.0134884, z: 0.18307349}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 923318559}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1983138593
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1983138590}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e59bf495b02221249ac04cc64a5e2d02, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _worldTime: {fileID: 165181247}
+  _cloudManager: {fileID: 1257550265}
+  _stormLifecycle: {fileID: 1983138591}
+  _checkIntervalSeconds: 2
+  _absorptionRadiusMultiplier: 1.2
+  _maxStormRadius: 0.5
+  _minLifetimeExtensionSeconds: 600
 --- !u!1 &1985101048
 GameObject:
   m_ObjectHideFlags: 0
@@ -4593,6 +4861,53 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2031368700}
   m_CullTransparentMesh: 1
+--- !u!1 &2044023811
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2044023813}
+  - component: {fileID: 2044023812}
+  m_Layer: 0
+  m_Name: CovenrageTracker
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2044023812
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2044023811}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c34c6b35f73f46b41912f70d8aa0496f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _tgs: {fileID: 1023926753}
+  _cloudManager: {fileID: 1257550265}
+  _stormManager: {fileID: 1983138591}
+--- !u!4 &2044023813
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2044023811}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.90332, y: 1.0134884, z: 0.3169265}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2060517411
 GameObject:
   m_ObjectHideFlags: 0
@@ -4826,13 +5141,15 @@ SceneRoots:
   - {fileID: 2060517412}
   - {fileID: 1433745226}
   - {fileID: 1951880916}
-  - {fileID: 1836677740}
   - {fileID: 165181248}
   - {fileID: 1415201270}
   - {fileID: 1251245095}
-  - {fileID: 1771103797}
   - {fileID: 1940934565}
-  - {fileID: 1983138592}
   - {fileID: 1004578523}
   - {fileID: 1341174908}
   - {fileID: 1910625280}
+  - {fileID: 513891003}
+  - {fileID: 661287899}
+  - {fileID: 1440280631}
+  - {fileID: 2044023813}
+  - {fileID: 923318559}

@@ -15,6 +15,9 @@ namespace Game.Weather.Storm
        [SerializeField] private int _maxActiveStorms = 6;
 
        [SerializeField] private StormDebugView _stormDebugPrefab;
+       
+       [Header("Spawn Mode")]
+       [SerializeField] private bool _enableRandomSpawn = false;
 
        public IReadOnlyList<Storm> ActiveStorm => _storms;
        private readonly List<Storm> _storms = new();
@@ -86,6 +89,8 @@ namespace Game.Weather.Storm
 
        private void TrySpawnStorm(double now)
        {
+           if (!_enableRandomSpawn)
+               return;
            if (_storms.Count >= _maxActiveStorms)
                return;
 
@@ -109,6 +114,7 @@ namespace Game.Weather.Storm
            double durationHours = RollDurationHours();
            double durationSeconds = durationHours * SecondsPerHour;
            
+           UnityEngine.Debug.Log("Create Storm from Convergence Points");
            var storm = new Storm
            {
                Position = position,
@@ -155,6 +161,59 @@ namespace Game.Weather.Storm
        public List<Storm> GetStormList()
        {
            return _storms;
+       }
+
+       public Storm CreateStormFromClouds(
+           Vector2 position,
+           float radius,
+           double now,
+           List<double> cloudLifetimes)
+       {
+           if (_storms.Count >= _maxActiveStorms)
+           {
+               Debug.LogWarning("Cannot create a storm with max active storms");
+               return null;
+           }
+
+           bool becomesActive = true;
+
+           // Duration depends on max cloud lifetime
+           double maxCloudExpire = 0;
+           foreach (double expireTime in cloudLifetimes)
+           {
+               if (expireTime > maxCloudExpire)
+               {
+                   maxCloudExpire = expireTime;
+               }
+           }
+           
+           double durationSeconds = maxCloudExpire - now;
+           
+           durationSeconds = Mathf.Max((float)durationSeconds, (float)SecondsPerHour);
+           
+           UnityEngine.Debug.Log("Create Storm from Clouds");
+           var storm = new Storm
+           {
+               Position = position,
+               Radius = Mathf.Clamp(radius, _stormConfig.MinRadius, _stormConfig.MaxRadius),
+               State = StormState.Active,
+               IsActive = true,
+               SpawnGameSeconds = now,
+               ExpireGameSeconds = now + durationSeconds
+           };
+
+           var view = Instantiate(
+               _stormDebugPrefab,
+               new Vector3(position.x, 0.5f, position.y),
+               Quaternion.identity
+           );
+           storm.view = view;
+           _storms.Add(storm);
+           
+           view.Initialize(storm.Radius);
+           storm.view.UpdateState(storm.State);
+           
+           return storm;
        }
     }
 }

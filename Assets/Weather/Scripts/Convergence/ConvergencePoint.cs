@@ -13,6 +13,8 @@ namespace Game.Weather.Convergence
        public double ExpireGameSeconds;
 
        public float AttractionStrength;
+       
+       public ConvergenceDebugView VisualObject;
 
        public bool IsExpired(double nowGameSeconds)
        {

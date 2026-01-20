@@ -11,6 +11,10 @@ namespace Game.Weather.Convergence
         [SerializeField] private WorldTime _worldTime;
         [SerializeField] private ConvergenceConfig _config;
         
+        [Header("Visual")]
+        [SerializeField] private ConvergenceDebugView _convergenceVisualPrefab;
+        [SerializeField] private float _visualRadius = 1.5f;
+        
         [Header("Terrain Bounds (World XZ)")]
         [SerializeField] private Vector2 _terrainMin;
         [SerializeField] private Vector2 _terrainMax;
@@ -47,6 +51,14 @@ namespace Game.Weather.Convergence
             if (_worldTime != null)
             {
                 _worldTime.OnTimeAdvanced -= HandleTimeAdvance;
+            }
+    
+            foreach (var point in _points)
+            {
+                if (point.VisualObject != null)
+                {
+                    Destroy(point.VisualObject.gameObject);
+                }
             }
         }
 
@@ -91,7 +103,7 @@ namespace Game.Weather.Convergence
                 _config.MinLifeTimehours, 
                 _config.MaxLifeTimehours) * SecondsPerHour;
 
-            return new ConvergencePoint
+            var point = new ConvergencePoint
             {
                 Position = pos,
                 DriftDirection = Random.insideUnitCircle.normalized,
@@ -99,6 +111,19 @@ namespace Game.Weather.Convergence
                 ExpireGameSeconds = now + lifetime,
                 AttractionStrength = _config.attractionStrength
             };
+    
+            // Show Visual of Convergence
+            if (_convergenceVisualPrefab != null)
+            {
+                point.VisualObject = Instantiate(
+                    _convergenceVisualPrefab,
+                    new Vector3(pos.x, 0.1f, pos.y),
+                    Quaternion.identity
+                );
+                point.VisualObject.Initialize(_visualRadius);
+            }
+    
+            return point;
         }
 
         private bool IsFarEnough(Vector2 pos)
@@ -128,6 +153,11 @@ namespace Game.Weather.Convergence
             foreach (var p in _points)
             {
                 p.Position += p.DriftDirection*_config.DriftSpeed*deltaHours;
+        
+                if (p.VisualObject != null)
+                {
+                    p.VisualObject.transform.position = new Vector3(p.Position.x, 0.1f, p.Position.y);
+                }
             }
 
             ClampToBounds();
@@ -154,6 +184,11 @@ namespace Game.Weather.Convergence
             {
                 if (_points[i].IsExpired(now))
                 {
+                    if (_points[i].VisualObject != null)
+                    {
+                        Destroy(_points[i].VisualObject.gameObject);
+                    }
+            
                     _points.RemoveAt(i);
                     removed = true;
                 }
