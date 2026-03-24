@@ -14,10 +14,13 @@ namespace Game.Weather.Convergence
         [Header("Visual")]
         [SerializeField] private ConvergenceDebugView _convergenceVisualPrefab;
         [SerializeField] private float _visualRadius = 1.5f;
-        
+
         [Header("Terrain Bounds (World XZ)")]
         [SerializeField] private Vector2 _terrainMin;
         [SerializeField] private Vector2 _terrainMax;
+
+        [Header("Bounds Source")]
+        [SerializeField] private WeatherWorldBoundsProvider _worldBoundsProvider;
 
         public IReadOnlyList<ConvergencePoint> ActivePoints => _points;
         
@@ -40,10 +43,26 @@ namespace Game.Weather.Convergence
                 return;
             }
 
+            RefreshTerrainBounds();
+
             _worldTime.OnTimeAdvanced += HandleTimeAdvance;
             
             InitializePoints();
             ScheduleNextDriftReroll(_worldTime.TotalGameSeconds);
+        }
+
+        private void RefreshTerrainBounds()
+        {
+            if(_worldBoundsProvider == null)
+            {
+                return;
+            }
+
+            if(_worldBoundsProvider.TryGetBounds(out var min, out var max))
+            {
+                _terrainMin = min;
+                _terrainMax = max;
+            }
         }
 
         private void OnDisable()

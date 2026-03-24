@@ -8,6 +8,9 @@ using UnityEngine.UI;
 
 public class MarbleMovement : MonoBehaviour
 {
+    [SerializeField] private InfiniteMapStreamer _mapStreamer;
+    [SerializeField] private float _marbleBoundaryPadding = 0.05f;
+
     [SerializeField] private Transform _marble;
     [SerializeField] private TerrainGridSystem _terrainGridSystem;
 
@@ -63,6 +66,8 @@ public class MarbleMovement : MonoBehaviour
     // Grid Visibility
     [Header("Grid Visibility")] [SerializeField]
     private GridVisibilityController _gridVisibility;
+
+    [SerializeField] private WorldTerrainQuery _worldTerrainQuery;
     
     // Store values of Sliders
     private float _neutralSpeedValue = 5f;
@@ -186,7 +191,10 @@ public class MarbleMovement : MonoBehaviour
 
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
-                _targetPosition = new Vector3(hit.point.x, _marble.position.y, hit.point.z);
+                Vector3 tapped = new Vector3(hit.point.x, _marble.position.y, hit.point.z);
+                _targetPosition = _mapStreamer != null?
+                    _mapStreamer.ClampWorldPositionXZ(tapped, _marbleBoundaryPadding)
+                    : tapped;
                 _moving = true;
 
                 _currentSlopeState = SlopeState.Normal;
@@ -207,6 +215,13 @@ public class MarbleMovement : MonoBehaviour
         if (!_moving) return;
 
         Vector3 current = _marble.position;
+        if(_mapStreamer != null)
+        {
+            current = _mapStreamer.ClampWorldPositionXZ(current, _marbleBoundaryPadding);
+            _marble.position = current;
+
+            _targetPosition = _mapStreamer.ClampWorldPositionXZ(_targetPosition, _marbleBoundaryPadding);
+        }
         Vector3 toTarget = _targetPosition - current;
         if (toTarget.sqrMagnitude < 0.0001f)
         {
@@ -224,7 +239,9 @@ public class MarbleMovement : MonoBehaviour
         float movedDistance = Vector3.Distance(current, _lastFramePosition);
         _distanceInCurrentState += movedDistance;
 
-        float currentHeight = GetHeightAtPosition(current);
+        float currentHeight = _worldTerrainQuery != null
+                                ?_worldTerrainQuery.GetHeight(current)
+                                :GetHeightAtPosition(current);
 
         float actualSlopeDelta = currentHeight - _previousHeight;
 
@@ -314,8 +331,11 @@ public class MarbleMovement : MonoBehaviour
         Vector3 nextPos = current + direction * stepDistance;
 
         //float brightness = GetBrightnessAtPosition(nextPos);
+        var isLake = _worldTerrainQuery != null
+                        ?_worldTerrainQuery.IsLake(nextPos)
+                        :TerrainMaskUtility.Instance.IsLake(nextPos);   
 
-        if (TerrainMaskUtility.Instance.IsLake(nextPos))
+        if (isLake)
         {
             _moving = false;
             return;
@@ -328,7 +348,14 @@ public class MarbleMovement : MonoBehaviour
             _targetPosition,
             finalSpeed * Time.deltaTime);
 
-        // Lưu vị trí và height cho frame sau
+        if(_mapStreamer != null)
+        {
+            _marble.position = _mapStreamer.
+                ClampWorldPositionXZ(_marble.position,
+                _marbleBoundaryPadding);
+        }
+
+        // Save pos and height for after frame
         _lastFramePosition = current;
         _previousHeight = currentHeight;
 
@@ -442,7 +469,10 @@ public class MarbleMovement : MonoBehaviour
     
     private float GetForestSlowdownFactor(Vector3 worldPos)
     {
-        if (IsInForest(worldPos))
+        var isForest = _worldTerrainQuery!=null
+                        ?_worldTerrainQuery.IsForest(worldPos)
+                        :IsInForest(worldPos);
+        if (isForest)
         {
             return _forestSlowdownFactor;
         }
@@ -451,6 +481,11 @@ public class MarbleMovement : MonoBehaviour
 
     private float GetHeightAtPosition(Vector3 worldPos)
     {
+        if(_worldTerrainQuery != null)
+        {
+            return _worldTerrainQuery.GetHeight(worldPos);
+        }
+
         if (_heightmapTexture != null)
         {
             return GetTextureValueAtPosition(_heightmapTexture, worldPos);

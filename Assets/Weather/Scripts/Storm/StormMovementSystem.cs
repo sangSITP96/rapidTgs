@@ -14,6 +14,9 @@ namespace Game.Weather.Storm
         [SerializeField] private StormLifecycleManager _stormLifecycle;
         [SerializeField] private StormMovementConfig _stormMovementConfig;
 
+        [Header("Bounds Source")]
+        [SerializeField] private WeatherWorldBoundsProvider _worldBoundsProvider;
+
         [Header("Terrain Bounds (World XZ)")] 
         [SerializeField] private Vector2 _terrainMin;
         [SerializeField] private Vector2 _terrainMax;
@@ -38,6 +41,7 @@ namespace Game.Weather.Storm
                 return;
             }
 
+            RefreshTerrainBounds();
             _worldTime.OnTimeAdvanced += HandleTimeAdvanced;
         }
 
@@ -46,6 +50,20 @@ namespace Game.Weather.Storm
             if (_worldTime != null)
             {
                 _worldTime.OnTimeAdvanced -= HandleTimeAdvanced;
+            }
+        }
+
+        private void RefreshTerrainBounds()
+        {
+            if (_worldBoundsProvider == null)
+            {
+                return;
+            }
+
+            if(_worldBoundsProvider.TryGetBounds(out var min, out var max))
+            {
+                _terrainMin = min;
+                _terrainMax = max;
             }
         }
 

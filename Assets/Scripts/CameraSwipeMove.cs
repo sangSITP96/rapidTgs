@@ -1,4 +1,5 @@
 using TGS;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -9,6 +10,9 @@ public class CameraSwipeMove : MonoBehaviour
     [SerializeField] private float horizontalTiles = 6f;
 
     [SerializeField] private GameObject _marbleGameObject;
+
+    [SerializeField] private InfiniteMapStreamer _mapStreamer;
+    [SerializeField] private float _cameraBoundaryPadding = 0.05f;
 
     private float _tileW;
     private float _tileH;
@@ -139,40 +143,55 @@ public class CameraSwipeMove : MonoBehaviour
 
     void ClampCameraToMap()
     {
+        if (_camera == null || _mapStreamer == null) return;
+
+        if (!_mapStreamer.TryGetWorldBounds(
+            out float minX,
+            out float maxX,
+            out float minZ,
+            out float maxZ))
+        {
+            return;
+        }
+
+        minX += _cameraBoundaryPadding;
+        maxX -= _cameraBoundaryPadding;
+        minZ += _cameraBoundaryPadding;
+        maxZ -= _cameraBoundaryPadding;
+
         float halfHeight = _camera.orthographicSize;
         float halfWidth = _camera.orthographicSize * _camera.aspect;
-    
-        float mapLeft = -MAP_WIDTH / 2;
-        float mapRight = MAP_WIDTH / 2;
-        float mapBottom = -MAP_HEIGHT / 2;
-        float mapTop = MAP_HEIGHT / 2;
-
-        float minX = mapLeft + halfWidth;
-        float maxX = mapRight - halfWidth;
-        float minZ = mapBottom + halfHeight;
-        float maxZ = mapTop - halfHeight;
 
         Vector3 pos = transform.position;
         Vector3 oldPos = pos;
-    
-        // Clamp position
-        pos.x = Mathf.Clamp(pos.x, minX, maxX);
-        pos.z = Mathf.Clamp(pos.z, minZ, maxZ);
-    
-        transform.position = pos;
-    
-        // Only clear velocity when NOT dragging and we actually hit boundary
-        if (!_dragging)
+
+        float width = maxX - minX;
+        float height = maxZ - minZ;
+
+        if (width <= halfWidth * 2f)
         {
-            // Clear velocity component if we hit boundary in that direction
-            if (pos.x != oldPos.x)
-            {
-                _velocity.x = 0f;
-            }
-            if (pos.z != oldPos.z)
-            {
-                _velocity.y = 0f;
-            }
+            pos.x = (minX + maxX) * 0.5f;
+        }
+        else
+        {
+            pos.x = Mathf.Clamp(pos.x, minX + halfWidth, maxX - halfWidth);
+        }
+
+        if(height <= halfHeight * 2f)
+        {
+            pos.z = (minZ + maxZ) * 0.5f;
+        }
+        else
+        {
+            pos.z = Mathf.Clamp(pos.z, minZ + halfHeight, maxZ - halfHeight);
+        }
+
+        transform.position = pos;
+
+        if(!_dragging)
+        {
+            if (!Mathf.Approximately(pos.x, oldPos.x)) _velocity.x = 0f;
+            if (!Mathf.Approximately(pos.z, oldPos.z)) _velocity.y = 0;
         }
     }
 }
