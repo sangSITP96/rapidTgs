@@ -20,10 +20,5 @@ public class MapChunkRuntime : MonoBehaviour
 
         mat.mainTextureScale = Vector2.one;
         mat.mainTextureOffset = Vector2.zero;
-
-        Debug.Log(
-            $"[MapChunkRuntime] Coord={coord} | Using sliced texture '{data.Visual?.name}'",
-            this
-        );
     }
 }

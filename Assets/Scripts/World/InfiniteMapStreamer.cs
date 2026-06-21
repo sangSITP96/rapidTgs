@@ -211,7 +211,6 @@ public class InfiniteMapStreamer : MonoBehaviour
             return d;
         }
 
-        UnityEngine.Debug.Log("uaaaa: " + coord + "====");
         return _defaultData;
     }
 
