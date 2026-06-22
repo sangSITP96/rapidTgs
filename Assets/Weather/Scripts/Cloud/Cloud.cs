@@ -27,6 +27,9 @@ namespace Game.Weather.Cloud
         // Movement
         public float SpawnTimer; // Time on lake before detach
         public int SourceLakeId;
+
+        public CloudVisualCategory VisualCategory;
+        public float SourceLakeSize;
         
         // Visual 
         public GameObject VisualObject;

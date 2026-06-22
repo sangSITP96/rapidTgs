@@ -261,6 +261,11 @@ namespace Game.Weather.Storm
             }
             
             _stormLifecycle.RemoveStormAt(absorbedIndex);
+
+            ColonyEventLogService.Instance?.AddSimple(
+                EventCategory.Weather,
+                "Storms Merged",
+                $"Two storms merged");
             
             Debug.Log($"[Storm Merge] Complete!");
         }

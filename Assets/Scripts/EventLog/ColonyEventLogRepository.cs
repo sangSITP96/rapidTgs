@@ -1,3 +1,4 @@
+using Game.Weather.Cloud;
 using System.IO;
 using UnityEngine;
 
@@ -37,6 +38,7 @@ public class ColonyEventLogRepository
             string json = JsonUtility.ToJson(data, prettyPrint: false);
 
             File.WriteAllText(_filePath, json);
+            Debug.Log(_filePath);
         }
         catch(System.Exception ex)
         {

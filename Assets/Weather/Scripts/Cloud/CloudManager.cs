@@ -1,10 +1,9 @@
-using System;
-using System.Collections.Generic;
 using Game.Core.WorldTime;
 using Game.Weather.Convergence;
 using Game.Weather.Core;
 using Game.Weather.Global;
 using Game.Weather.Lake;
+using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -31,9 +30,22 @@ namespace Game.Weather.Cloud
         [SerializeField] private float _convergenceAttractionRadius = 3f;
         [SerializeField] private float _convergenceSlowdownFactor = 0.3f;
         [SerializeField] private float _convergenceAttractionStrength = 0.5f;
-        
+
         [Header("Visual")]
-        [SerializeField] private GameObject _cloudPrefab;
+        [SerializeField] private CloudVisualLibrary _cloudVisualLibrary;
+        [SerializeField] private Transform _cloudVisualParent;
+        [SerializeField] private float _cloudVisualHeight = 5f;
+        [SerializeField] private bool _applyCategoryScale = false;
+        [SerializeField] private float _smallScale = 1f;
+        [SerializeField] private float _mediumScale = 1f;
+        [SerializeField] private float _largeScale = 1f;
+        [SerializeField] private float _clusterScale = 1f;
+
+        [Header("Event Log")]
+        [SerializeField] private bool _logCloudSpawnToEventLog = true;
+        [SerializeField] private float _cloudEventLogCooldownSeconds = 3f;
+
+        private float _lastCloudEventLogRealTime = -999f;
 
         public IReadOnlyList<Cloud> ActiveClouds => _clouds;
 
@@ -42,8 +54,6 @@ namespace Game.Weather.Cloud
 
         private const double SecondsPerMinute = 60.0;
         private const double SecondsPerHour = 3600.0;
-
-        private float localScaleCloudObj = 0.15f;
 
         private void OnEnable()
         {
@@ -101,36 +111,100 @@ namespace Game.Weather.Cloud
                 Debug.LogError($"[Cloud] Invalid lake center: {lake.Center} for lake {lake.Id}");
                 return;
             }
-    
+
             if (Mathf.Abs(lake.Center.x) > 1000f || Mathf.Abs(lake.Center.y) > 1000f)
             {
                 Debug.LogWarning($"[Cloud] Lake {lake.Id} center {lake.Center} seems out of bounds");
             }
+
+            if (_cloudVisualLibrary == null)
+            {
+                Debug.LogWarning("[Cloud] CloudVisualLibrary is not assigned.");
+                return;
+            }
+
+            if (!_cloudVisualLibrary.TryPickPrefabForLake(
+                lake.Size,
+                out GameObject prefab,
+                out CloudVisualCategory category,
+                out float simulationRadius))
+            {
+                Debug.LogWarning($"[Cloud] No VFX prefab configured for lake size {lake.Size}");
+                return;
+            }
+
             double lifetimeMinutes = Random.Range(_minLifetimeMinutes, _maxLifetimeMinutes);
             double lifetimeSeconds = lifetimeMinutes * SecondsPerMinute;
 
             Cloud cloud = new Cloud
             {
                 Id = _nextCloudId++,
-                Position = lake.Center + Random.insideUnitCircle * 0.5f,
-                Radius = Random.Range(0.8f, 1.5f),
+                Position = lake.Center,// + Random.insideUnitCircle * 0.5f,
+                Radius = simulationRadius,
                 State = CloudState.Spawning,
                 SpawnGameSeconds = now,
                 ExpireGameSeconds = now + lifetimeSeconds,
                 SourceLakeId = lake.Id,
+                SourceLakeSize = lake.Size,
+                VisualCategory = category,
                 SpawnTimer = 0f
             };
 
-            if (_cloudPrefab != null)
+            Vector3 spawnPos = GetCloudWorldPosition(cloud.Position);
+            cloud.VisualObject = Instantiate(
+                prefab,
+                spawnPos,
+                Quaternion.identity,
+                _cloudVisualParent != null ? _cloudVisualParent : transform);
+
+            if (_applyCategoryScale)
             {
-                cloud.VisualObject = Instantiate(
-                    _cloudPrefab,
-                    new Vector3(cloud.Position.x, 1f, cloud.Position.y), 
-                    Quaternion.identity);
-                cloud.VisualObject.transform.localScale = new Vector3(localScaleCloudObj, 0.05f, localScaleCloudObj)*  cloud.Radius;
+                float scale = GetCategoryScale(category);
+                cloud.VisualObject.transform.localScale = Vector3.one * scale;
             }
-            
+
             _clouds.Add(cloud);
+
+            if (_logCloudSpawnToEventLog
+                && category >= CloudVisualCategory.Medium
+                && Time.unscaledTime - _lastCloudEventLogRealTime >= _cloudEventLogCooldownSeconds)
+            {
+                _lastCloudEventLogRealTime = Time.unscaledTime;
+
+                ColonyEventLogService.Instance?.AddSimple(
+                    EventCategory.Weather,
+                    "Cloud Formed",
+                    $"A {category} cloud formed over lake #{lake.Id}" +
+                    $"(size {lake.Size:F0}) ");
+            }
+        }
+
+        private Vector3 GetCloudWorldPosition(Vector2 xzPosition)
+        {
+            float y = _cloudVisualHeight;
+
+            return new Vector3(xzPosition.x, y, xzPosition.y);
+        }
+
+        private float GetCategoryScale(CloudVisualCategory category)
+        {
+            switch (category)
+            {
+                case CloudVisualCategory.Small:
+                    return _smallScale;
+
+                case CloudVisualCategory.Medium:
+                    return _mediumScale;
+
+                case CloudVisualCategory.Large:
+                    return _largeScale;
+
+                case CloudVisualCategory.Cluster:
+                    return _clusterScale;
+
+                default:
+                    return 1f;
+            }
         }
 
         private void HandleTimeAdvanced(double deltaGameSeconds, double now)
@@ -155,7 +229,8 @@ namespace Game.Weather.Cloud
 
                 if (cloud.VisualObject != null)
                 {
-                    cloud.VisualObject.transform.position = new Vector3(cloud.Position.x, 1f, cloud.Position.y);
+                    cloud.VisualObject.transform.position = GetCloudWorldPosition(
+                        cloud.Position);
                 }
             }
         }

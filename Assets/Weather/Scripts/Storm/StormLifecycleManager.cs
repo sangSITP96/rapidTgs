@@ -60,9 +60,13 @@ namespace Game.Weather.Storm
            for (int i = _storms.Count - 1; i >= 0; i--)
            {
                var storm = _storms[i];
-               // Check expired
+
                if (storm.IsExpired(now))
                {
+                    ColonyEventLogService.Instance?.AddSimple(
+                        EventCategory.Weather,
+                        "Storm Dissipated",
+                        $"A storm dissipated");
                    Debug.Log($"[Storm {i}] ✅ EXPIRED! Destroying..."); // ← ADD
                    DestroyStorm(storm, i);
                    continue;
@@ -70,7 +74,7 @@ namespace Game.Weather.Storm
         
                if (storm.State == StormState.Exited)
                {
-                   Debug.Log($"[Storm {i}] ✅ EXITED! Destroying..."); // ← ADD
+                    Debug.Log($"[Storm {i}] ✅ EXITED! Destroying..."); // ← ADD
                    DestroyStorm(storm, i);
                }
            }
@@ -138,6 +142,12 @@ namespace Game.Weather.Storm
            {
                storm.view.UpdateState(storm.State);
            }
+
+            ColonyEventLogService.Instance?.AddSimple(
+                EventCategory.Weather,
+                "Storm Formed",
+                $"A storm formed near convergence "+
+                $"radius {storm.Radius:F2}, state {storm.State}");
        }
 
        private double RollDurationHours()
@@ -212,6 +222,11 @@ namespace Game.Weather.Storm
            
            view.Initialize(storm.Radius);
            storm.view.UpdateState(storm.State);
+
+            ColonyEventLogService.Instance?.AddSimple(
+                EventCategory.Weather,
+                "Storm Formed",
+                $"A storm formed from clustered clouds ");
            
            return storm;
        }

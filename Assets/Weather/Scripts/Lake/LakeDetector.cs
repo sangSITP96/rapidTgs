@@ -55,6 +55,11 @@ namespace Game.Weather.Lake
                     }
                 }
             }
+
+            foreach (var lake in _lakes)
+            {
+                Debug.Log($"[Lake] id={lake.Id}, size={lake.Size}, center={lake.Center}");
+            }
         }
 
         private Lake FloodFillLake(int startIndex, HashSet<int> visited, int lakeId)
