@@ -7,7 +7,6 @@ namespace Game.Weather.Convergence
     public class ConvergencePoint
     {
        public Vector2 Position;
-       public Vector2 DriftDirection;
 
        public double SpawnGameSeconds;
        public double ExpireGameSeconds;

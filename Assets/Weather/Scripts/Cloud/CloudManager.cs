@@ -1,7 +1,6 @@
 using Game.Core.WorldTime;
 using Game.Weather.Convergence;
 using Game.Weather.Core;
-using Game.Weather.Global;
 using Game.Weather.Lake;
 using System.Collections.Generic;
 using UnityEngine;
@@ -13,7 +12,6 @@ namespace Game.Weather.Cloud
     {
         [SerializeField] private WorldTime _worldTime;
         [SerializeField] private WorldTick _cloudSpawnTick; // 5-10 minutes
-        [SerializeField] private GlobalWindSystem _windSystem;
         [SerializeField] private LakeDetector _lakeDetector;
 
         [SerializeField] private ConvergenceManager _convergenceManager;
@@ -28,8 +26,9 @@ namespace Game.Weather.Cloud
         
         [Header("Convergence")]
         [SerializeField] private float _convergenceAttractionRadius = 3f;
-        [SerializeField] private float _convergenceSlowdownFactor = 0.3f;
         [SerializeField] private float _convergenceAttractionStrength = 0.5f;
+
+        private static readonly Vector2 EastDriftDirection = Vector2.right;
 
         [Header("Visual")]
         [SerializeField] private CloudVisualLibrary _cloudVisualLibrary;
@@ -58,7 +57,6 @@ namespace Game.Weather.Cloud
         private void OnEnable()
         {
             if (_worldTime == null) _worldTime = FindFirstObjectByType<WorldTime>();
-            if (_windSystem == null) _windSystem = FindFirstObjectByType<GlobalWindSystem>();
 
             if (_cloudSpawnTick != null)
             {
@@ -249,47 +247,42 @@ namespace Game.Weather.Cloud
 
         private void MoveCloud(Cloud cloud, float deltaHours)
         {
-            Vector2 windDir = _windSystem.CurrentBiasVector.normalized;
-            Vector2 movement = windDir * _cloudSpeed * deltaHours;
-            
-            // Check nearest convergence point
-            ConvergencePoint nearestConvergence = FindNearestConvergence(cloud.Position);
+            Vector2 movement = EastDriftDirection * (_cloudSpeed * deltaHours);
 
-            if (nearestConvergence != null)
+            ConvergencePoint convergenceInRange = FindConvergenceInRange(cloud.Position);
+            if (convergenceInRange != null)
             {
-                float distance = Vector2.Distance(cloud.Position, nearestConvergence.Position);
-                if (distance < _convergenceAttractionRadius)
-                {
-                    cloud.State = CloudState.InConvergence;
-                    movement *= _convergenceSlowdownFactor;
-                    
-                    Vector2 toConvergence = (nearestConvergence.Position - cloud.Position).normalized;
-                    movement += toConvergence * (_cloudSpeed * _convergenceAttractionStrength) * deltaHours;
-                }
-                else if(cloud.State == CloudState.InConvergence)
-                {
-                    cloud.State = CloudState.Drifting;
-                }
+                cloud.State = CloudState.InConvergence;
+
+                Vector2 toConvergence = (convergenceInRange.Position - cloud.Position).normalized;
+                movement += toConvergence * (_cloudSpeed * _convergenceAttractionStrength) * deltaHours;
             }
+            else if (cloud.State == CloudState.InConvergence)
+            {
+                cloud.State = CloudState.Drifting;
+            }
+
             cloud.Position += movement;
         }
 
-        private ConvergencePoint FindNearestConvergence(Vector2 position)
+        private ConvergencePoint FindConvergenceInRange(Vector2 position)
         {
             if (_convergenceManager == null || _convergenceManager.ActivePoints == null)
                 return null;
-        
+
             ConvergencePoint nearest = null;
             float minDistance = float.MaxValue;
+
             foreach (var point in _convergenceManager.ActivePoints)
             {
                 float distance = Vector2.Distance(position, point.Position);
-                if (distance < minDistance)
-                {
-                    minDistance = distance;
-                    nearest = point;
-                }
+                if (distance >= _convergenceAttractionRadius || distance >= minDistance)
+                    continue;
+
+                minDistance = distance;
+                nearest = point;
             }
+
             return nearest;
         }
 

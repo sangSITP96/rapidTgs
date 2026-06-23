@@ -467,6 +467,17 @@ public class InfiniteMapStreamer : MonoBehaviour
         return true;
     }
 
+    public bool TryGetChunkCenterXZ(Vector2Int coord, out Vector2 centerXZ)
+    {
+        centerXZ = default;
+
+        if (!TryGetChunkWorldBounds(coord, out float minX, out float maxX, out float minZ, out float maxZ))
+            return false;
+
+        centerXZ = new Vector2((minX + maxX) * 0.5f, (minZ + maxZ) * 0.5f);
+        return true;
+    }
+
     private Vector2Int WorldToCoord(Vector3 pos)
     {
         float lx = pos.x - _worldOrigin.x;

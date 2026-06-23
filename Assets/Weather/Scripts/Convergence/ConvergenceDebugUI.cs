@@ -89,7 +89,6 @@ public class ConvergenceDebugUI : MonoBehaviour
                 
                 info += $"<color=cyan>Point #{i + 1}</color>\n";
                 info += $"  Pos: ({point.Position.x:F1}, {point.Position.y:F1})\n";
-                info += $"  Drift: ({point.DriftDirection.x:F2}, {point.DriftDirection.y:F2})\n";
                 info += $"  Strength: {point.AttractionStrength:F2}\n";
                 // info += $"  Lifetime: {remaining / 3600:F1}h\n"; // Nếu có WorldTime
                 info += "\n";
