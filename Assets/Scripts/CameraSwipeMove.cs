@@ -3,6 +3,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
+[DefaultExecutionOrder(10)]
 public class CameraSwipeMove : MonoBehaviour
 {
     [SerializeField] private TerrainGridSystem _terrainGridSystem;
@@ -13,6 +14,7 @@ public class CameraSwipeMove : MonoBehaviour
 
     [SerializeField] private InfiniteMapStreamer _mapStreamer;
     [SerializeField] private float _cameraBoundaryPadding = 0.05f;
+    [SerializeField] private bool _focusOnMarbleAtStart = true;
 
     private float _tileW;
     private float _tileH;
@@ -37,6 +39,11 @@ public class CameraSwipeMove : MonoBehaviour
     
     private Camera _camera;
 
+    private void Awake()
+    {
+        ResolveMapStreamer();
+    }
+
     void Start()
     {
         _camera = GetComponent<Camera>();
@@ -59,6 +66,36 @@ public class CameraSwipeMove : MonoBehaviour
         float marbleScale = _tileW * 0.45f;
         
         _marbleGameObject.transform.localScale = new Vector3(marbleScale, marbleScale, marbleScale);
+
+        if (_focusOnMarbleAtStart)
+            FocusOnMarble();
+    }
+
+    private void ResolveMapStreamer()
+    {
+        if (_mapStreamer == null)
+            _mapStreamer = FindObjectOfType<InfiniteMapStreamer>();
+    }
+
+    private void FocusOnMarble()
+    {
+        if (_marbleGameObject == null)
+            return;
+
+        ResolveMapStreamer();
+
+        if (_mapStreamer != null)
+        {
+            _mapStreamer.FocusCameraOn(_marbleGameObject.transform.position);
+            return;
+        }
+
+        var marblePos = _marbleGameObject.transform.position;
+        var pos = transform.position;
+        pos.x = marblePos.x;
+        pos.z = marblePos.z;
+        transform.position = pos;
+        ClampCameraToMap();
     }
 
     void Update()
@@ -143,55 +180,22 @@ public class CameraSwipeMove : MonoBehaviour
 
     void ClampCameraToMap()
     {
-        if (_camera == null || _mapStreamer == null) return;
+        if (_camera == null)
+            _camera = GetComponent<Camera>();
 
-        if (!_mapStreamer.TryGetWorldBounds(
-            out float minX,
-            out float maxX,
-            out float minZ,
-            out float maxZ))
-        {
+        ResolveMapStreamer();
+        if (_camera == null || _mapStreamer == null)
             return;
-        }
-
-        minX += _cameraBoundaryPadding;
-        maxX -= _cameraBoundaryPadding;
-        minZ += _cameraBoundaryPadding;
-        maxZ -= _cameraBoundaryPadding;
-
-        float halfHeight = _camera.orthographicSize;
-        float halfWidth = _camera.orthographicSize * _camera.aspect;
 
         Vector3 pos = transform.position;
         Vector3 oldPos = pos;
-
-        float width = maxX - minX;
-        float height = maxZ - minZ;
-
-        if (width <= halfWidth * 2f)
-        {
-            pos.x = (minX + maxX) * 0.5f;
-        }
-        else
-        {
-            pos.x = Mathf.Clamp(pos.x, minX + halfWidth, maxX - halfWidth);
-        }
-
-        if(height <= halfHeight * 2f)
-        {
-            pos.z = (minZ + maxZ) * 0.5f;
-        }
-        else
-        {
-            pos.z = Mathf.Clamp(pos.z, minZ + halfHeight, maxZ - halfHeight);
-        }
-
+        pos = _mapStreamer.ClampCameraPosition(pos, _camera, _cameraBoundaryPadding);
         transform.position = pos;
 
-        if(!_dragging)
+        if (!_dragging)
         {
             if (!Mathf.Approximately(pos.x, oldPos.x)) _velocity.x = 0f;
-            if (!Mathf.Approximately(pos.z, oldPos.z)) _velocity.y = 0;
+            if (!Mathf.Approximately(pos.z, oldPos.z)) _velocity.y = 0f;
         }
     }
 }

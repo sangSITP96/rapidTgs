@@ -16,21 +16,93 @@ public class WorldTerrainQuery : MonoBehaviour
 
     [SerializeField] private bool _useSlicedTiles = true;
 
-    private Vector2 GetSampleUV(MapChunkRuntime chunk, Vector2 localUV)
+    private Vector2 GetSampleUV(Vector2Int chunkCoord, Vector2 localUV)
     {
         if (_useSlicedTiles)
             return localUV;
 
         if (_streamer == null) return localUV;
 
-        if (_uvMap != null && _uvMap.TryGetUV(chunk.Coord, out Rect uv))
+        if (_uvMap != null && _uvMap.TryGetUV(chunkCoord, out Rect uv))
         {
             return uv.position + Vector2.Scale(localUV, uv.size);
         }
 
-        float u = (chunk.Coord.x + localUV.x) / (float)_streamer.Columns;
-        float v = (chunk.Coord.y + localUV.y) / (float)_streamer.Rows;
+        float u = (chunkCoord.x + localUV.x) / (float)_streamer.Columns;
+        float v = (chunkCoord.y + localUV.y) / (float)_streamer.Rows;
         return new Vector2(u, v);
+    }
+
+    private Vector2 GetSampleUV(MapChunkRuntime chunk, Vector2 localUV)
+    {
+        return GetSampleUV(chunk.Coord, localUV);
+    }
+
+    private bool IsLakeAtCoord(Vector2Int chunkCoord, MapChunkData data, Vector2 localUV)
+    {
+        if (data == null) return false;
+
+        Vector2 sampleUV = GetSampleUV(chunkCoord, localUV);
+
+        float s = SampleGray(data.SmallLake, sampleUV, 0f);
+        if (s > lakeThreshold) return true;
+
+        float b = SampleGray(data.BigLake, sampleUV, 0f);
+        return b > lakeThreshold;
+    }
+
+    public bool TryGetRandomLandPosition(
+        Vector2Int chunkCoord,
+        float edgePadding,
+        int maxAttempts,
+        out Vector3 worldPos)
+    {
+        worldPos = default;
+
+        if (_streamer == null ||
+            !_streamer.TryGetChunkWorldBounds(chunkCoord, out float minX, out float maxX, out float minZ, out float maxZ))
+        {
+            return false;
+        }
+
+        minX += edgePadding;
+        maxX -= edgePadding;
+        minZ += edgePadding;
+        maxZ -= edgePadding;
+
+        if (minX >= maxX || minZ >= maxZ)
+            return false;
+
+        MapChunkData data = _streamer.GetChunkData(chunkCoord);
+        float y = _streamer.MarbleSpawnY;
+        int attempts = Mathf.Max(1, maxAttempts);
+
+        for (int i = 0; i < attempts; i++)
+        {
+            float x = Random.Range(minX, maxX);
+            float z = Random.Range(minZ, maxZ);
+            var localUV = new Vector2(
+                Mathf.InverseLerp(minX, maxX, x),
+                Mathf.InverseLerp(minZ, maxZ, z));
+
+            if (!IsLakeAtCoord(chunkCoord, data, localUV))
+            {
+                worldPos = new Vector3(x, y, z);
+                return true;
+            }
+        }
+
+        float centerX = (minX + maxX) * 0.5f;
+        float centerZ = (minZ + maxZ) * 0.5f;
+        var centerUV = new Vector2(0.5f, 0.5f);
+
+        if (!IsLakeAtCoord(chunkCoord, data, centerUV))
+        {
+            worldPos = new Vector3(centerX, y, centerZ);
+            return true;
+        }
+
+        return false;
     }
 
     public float GetHeight(Vector3 worldPos)

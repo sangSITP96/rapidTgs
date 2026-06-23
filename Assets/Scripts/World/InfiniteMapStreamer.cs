@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[DefaultExecutionOrder(-100)]
 public class InfiniteMapStreamer : MonoBehaviour
 {
     private enum ChunkPivotMode
@@ -41,6 +42,7 @@ public class InfiniteMapStreamer : MonoBehaviour
 
     public int Columns => _columns;
     public int Rows => _rows;
+    public float MarbleSpawnY => _spawnY;
 
     [Header("Horizontal Streaming")]
     [SerializeField] private int _preloadLeftRight = 2;
@@ -50,6 +52,15 @@ public class InfiniteMapStreamer : MonoBehaviour
     [Header("Data Source")]
     [SerializeField] private MapChunkData _defaultData;
     [SerializeField] private List<MapChunkEntry> _predefined = new();
+
+    [Header("Marble Spawn")]
+    [SerializeField] private bool _spawnMarbleOnStart = true;
+    [SerializeField] private Vector2Int _marbleSpawnChunk = Vector2Int.zero;
+    [SerializeField] private float _marbleSpawnEdgePadding = 0.5f;
+    [SerializeField] private int _marbleSpawnMaxAttempts = 64;
+    [SerializeField] private WorldTerrainQuery _terrainQuery;
+    [SerializeField] private bool _focusCameraOnMarbleSpawn = true;
+    [SerializeField] private float _cameraBoundaryPadding = 0.05f;
 
     [System.Serializable]
     public class MapChunkEntry
@@ -92,12 +103,118 @@ public class InfiniteMapStreamer : MonoBehaviour
                 _dataMap[e.coord] = e.data;
             }
         }
+
+        ResolveCameraTransform();
     }
 
     private void Start()
     {
+        if (_spawnMarbleOnStart)
+        {
+            TrySpawnMarbleOnChunk(_marbleSpawnChunk);
+        }
+        else if (_focusCameraOnMarbleSpawn && _marble != null)
+        {
+            FocusCameraOn(_marble.position);
+        }
+
         RefreshStreaming(force: true);
     }
+
+    private void ResolveCameraTransform()
+    {
+        if (_cameraTransform == null && Camera.main != null)
+            _cameraTransform = Camera.main.transform;
+    }
+
+    public void FocusCameraOn(Vector3 worldTarget)
+    {
+        ResolveCameraTransform();
+        if (_cameraTransform == null)
+            return;
+
+        var pos = _cameraTransform.position;
+        pos.x = worldTarget.x;
+        pos.z = worldTarget.z;
+
+        var camera = _cameraTransform.GetComponent<Camera>();
+        if (camera != null)
+            pos = ClampCameraPosition(pos, camera, _cameraBoundaryPadding);
+
+        _cameraTransform.position = pos;
+    }
+
+    public Vector3 ClampCameraPosition(Vector3 cameraPos, Camera camera, float padding)
+    {
+        if (camera == null ||
+            !TryGetWorldBounds(out float minX, out float maxX, out float minZ, out float maxZ))
+        {
+            return cameraPos;
+        }
+
+        minX += padding;
+        maxX -= padding;
+        minZ += padding;
+        maxZ -= padding;
+
+        float halfHeight = camera.orthographicSize;
+        float halfWidth = halfHeight * camera.aspect;
+
+        float width = maxX - minX;
+        float height = maxZ - minZ;
+
+        if (width <= halfWidth * 2f)
+            cameraPos.x = (minX + maxX) * 0.5f;
+        else
+            cameraPos.x = Mathf.Clamp(cameraPos.x, minX + halfWidth, maxX - halfWidth);
+
+        if (height <= halfHeight * 2f)
+            cameraPos.z = (minZ + maxZ) * 0.5f;
+        else
+            cameraPos.z = Mathf.Clamp(cameraPos.z, minZ + halfHeight, maxZ - halfHeight);
+
+        return cameraPos;
+    }
+
+    private void TrySpawnMarbleOnChunk(Vector2Int chunkCoord)
+    {
+        if (_marble == null || !IsCoordValid(chunkCoord))
+            return;
+
+        if (_terrainQuery == null)
+            _terrainQuery = FindObjectOfType<WorldTerrainQuery>();
+
+        EnsureChunkLoaded(chunkCoord);
+
+        if (_terrainQuery != null &&
+            _terrainQuery.TryGetRandomLandPosition(
+                chunkCoord,
+                _marbleSpawnEdgePadding,
+                _marbleSpawnMaxAttempts,
+                out Vector3 spawnPos))
+        {
+            spawnPos.y = _marble.position.y;
+            _marble.position = spawnPos;
+        }
+        else
+        {
+            _marble.position = CoordToWorld(chunkCoord);
+        }
+
+        if (_focusCameraOnMarbleSpawn)
+            FocusCameraOn(_marble.position);
+    }
+
+    public void EnsureChunkLoaded(Vector2Int coord)
+    {
+        if (!IsCoordValid(coord) || _chunkPrefab == null)
+            return;
+
+        if (!_loaded.ContainsKey(coord))
+            SpawnChunk(coord);
+    }
+
+    public MapChunkData GetChunkData(Vector2Int coord) => ResolveData(coord);
 
     private void Update()
     {
@@ -110,6 +227,8 @@ public class InfiniteMapStreamer : MonoBehaviour
     private void RefreshStreaming(bool force)
     {
         if (_rows <= 0 || _columns <= 0 || _chunkPrefab == null) return;
+
+        ResolveCameraTransform();
         if (_cameraTransform == null || _marble == null) return;
 
         Vector2Int camCoord = WorldToCoord(_cameraTransform.position);
@@ -255,6 +374,38 @@ public class InfiniteMapStreamer : MonoBehaviour
 
         minZ = _worldOrigin.y;
         maxZ = _worldOrigin.y + _rows*_tileSize.y;
+
+        return true;
+    }
+
+    public bool TryGetChunkWorldBounds(
+        Vector2Int coord,
+        out float minX,
+        out float maxX,
+        out float minZ,
+        out float maxZ)
+    {
+        minX = maxX = minZ = maxZ = 0f;
+
+        if (!IsCoordValid(coord))
+            return false;
+
+        if (_pivotMode == ChunkPivotMode.Center)
+        {
+            float centerX = _worldOrigin.x + (coord.x + 0.5f) * _tileSize.x;
+            float centerZ = _worldOrigin.y + (coord.y + 0.5f) * _tileSize.y;
+            minX = centerX - _tileSize.x * 0.5f;
+            maxX = centerX + _tileSize.x * 0.5f;
+            minZ = centerZ - _tileSize.y * 0.5f;
+            maxZ = centerZ + _tileSize.y * 0.5f;
+        }
+        else
+        {
+            minX = _worldOrigin.x + coord.x * _tileSize.x;
+            maxX = minX + _tileSize.x;
+            minZ = _worldOrigin.y + coord.y * _tileSize.y;
+            maxZ = minZ + _tileSize.y;
+        }
 
         return true;
     }
