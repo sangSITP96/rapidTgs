@@ -13,7 +13,10 @@ namespace Game.Weather.Storm
         [SerializeField] private ConvergenceManager _convergenceManager;
         [SerializeField] private StormLifecycleManager _stormLifecycle;
 
-        [Header("Gathering Rules")] [Tooltip("Radius around convergence point to check for clouds")] [SerializeField]
+        [Header("Gathering Rules")]
+        [SerializeField] private bool _stormFormationEnabled = false;
+
+        [Tooltip("Radius around convergence point to check for clouds")] [SerializeField]
         private float _gatherRadius = 2.0f;
 
         [Tooltip("Minimum clouds needed to form a storm")] [SerializeField]
@@ -25,6 +28,12 @@ namespace Game.Weather.Storm
 
         private void OnEnable()
         {
+            if (!_stormFormationEnabled)
+            {
+                enabled = false;
+                return;
+            }
+
             if (_worldTime == null) _worldTime = FindFirstObjectByType<WorldTime>();
             if (_cloudManager == null) _cloudManager = FindFirstObjectByType<CloudManager>();
             if (_convergenceManager == null) _convergenceManager = FindFirstObjectByType<ConvergenceManager>();

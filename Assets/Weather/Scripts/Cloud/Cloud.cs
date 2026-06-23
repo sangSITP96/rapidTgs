@@ -8,6 +8,7 @@ namespace Game.Weather.Cloud
         Spawning,
         Drifting,
         InConvergence,
+        Held,
         Absorbed
     }
     

@@ -12,6 +12,8 @@ namespace Game.Weather.Storm
         [SerializeField] private StormLifecycleManager _stormLifecycle;
         
         [Header("Absorption Settings")]
+        [SerializeField] private bool _stormFormationEnabled = false;
+
         [Tooltip("How often to check for clouds to absorb (seconds)")]
         [SerializeField] private float _checkIntervalSeconds = 2f;
         
@@ -29,6 +31,12 @@ namespace Game.Weather.Storm
         
         private void OnEnable()
         {
+            if (!_stormFormationEnabled)
+            {
+                enabled = false;
+                return;
+            }
+
             if (_worldTime == null) _worldTime = FindFirstObjectByType<WorldTime>();
             if (_cloudManager == null) _cloudManager = FindFirstObjectByType<CloudManager>();
             if (_stormLifecycle == null) _stormLifecycle = FindFirstObjectByType<StormLifecycleManager>();
