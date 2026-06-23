@@ -43,12 +43,7 @@ public class WorldTerrainQuery : MonoBehaviour
         if (data == null) return false;
 
         Vector2 sampleUV = GetSampleUV(chunkCoord, localUV);
-
-        float s = SampleGray(data.SmallLake, sampleUV, 0f);
-        if (s > lakeThreshold) return true;
-
-        float b = SampleGray(data.BigLake, sampleUV, 0f);
-        return b > lakeThreshold;
+        return IsLakeFromData(data, sampleUV);
     }
 
     public bool TryGetRandomLandPosition(
@@ -123,15 +118,37 @@ public class WorldTerrainQuery : MonoBehaviour
 
     public bool IsLake(Vector3 worldPos)
     {
-        if (!TryHit(worldPos, out var hit, out var chunk) || chunk.Data == null)
+        if (TryHit(worldPos, out var hit, out var chunk) && chunk.Data != null)
+        {
+            Vector2 sampleUV = GetSampleUV(chunk, hit.textureCoord);
+            return IsLakeFromData(chunk.Data, sampleUV);
+        }
+
+        if (_streamer != null &&
+            _streamer.TryWorldToChunkLocalUV(worldPos, out var coord, out var localUV))
+        {
+            return IsLakeAtCoord(coord, _streamer.GetChunkData(coord), localUV);
+        }
+
+        return false;
+    }
+
+    public bool IsLakeAtChunk(Vector2Int chunkCoord, Vector2 localUV)
+    {
+        if (_streamer == null)
             return false;
 
-        Vector2 globalUV = GetSampleUV(chunk, hit.textureCoord);
+        return IsLakeAtCoord(chunkCoord, _streamer.GetChunkData(chunkCoord), localUV);
+    }
 
-        float s = SampleGray(chunk.Data.SmallLake, globalUV, 0f);
+    private bool IsLakeFromData(MapChunkData data, Vector2 sampleUV)
+    {
+        if (data == null) return false;
+
+        float s = SampleGray(data.SmallLake, sampleUV, 0f);
         if (s > lakeThreshold) return true;
 
-        float b = SampleGray(chunk.Data.BigLake, globalUV, 0f);
+        float b = SampleGray(data.BigLake, sampleUV, 0f);
         return b > lakeThreshold;
     }
 

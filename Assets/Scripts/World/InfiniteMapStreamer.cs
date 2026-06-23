@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -78,6 +79,34 @@ public class InfiniteMapStreamer : MonoBehaviour
     private int _activeRow;
 
     private float _nextRefreshTime;
+
+    public event Action LoadedChunksChanged;
+
+    public IEnumerable<Vector2Int> LoadedChunkCoords => _loaded.Keys;
+
+    public bool IsChunkLoaded(Vector2Int coord) => _loaded.ContainsKey(coord);
+
+    public Vector2Int WorldToChunkCoord(Vector3 worldPos) => WorldToCoord(worldPos);
+
+    public bool TryWorldToChunkLocalUV(Vector3 worldPos, out Vector2Int coord, out Vector2 localUV)
+    {
+        coord = WorldToCoord(worldPos);
+        localUV = default;
+
+        if (!IsCoordValid(coord) ||
+            !TryGetChunkWorldBounds(coord, out float minX, out float maxX, out float minZ, out float maxZ))
+        {
+            return false;
+        }
+
+        localUV = new Vector2(
+            Mathf.InverseLerp(minX, maxX, worldPos.x),
+            Mathf.InverseLerp(minZ, maxZ, worldPos.z));
+
+        return true;
+    }
+
+    private readonly HashSet<Vector2Int> _previousLoadedChunks = new();
 
     public bool TryGetChunkAtWorld(Vector3 worldPos, out MapChunkRuntime chunk)
     {
@@ -277,6 +306,34 @@ public class InfiniteMapStreamer : MonoBehaviour
             Vector3 clamped = ClampWorldPositionXZ(_marble.position, 0.001f);
             _marble.position = clamped;
         }
+
+        NotifyLoadedChunksChangedIfNeeded();
+    }
+
+    private void NotifyLoadedChunksChangedIfNeeded()
+    {
+        bool changed = _previousLoadedChunks.Count != _loaded.Count;
+
+        if (!changed)
+        {
+            foreach (var coord in _loaded.Keys)
+            {
+                if (!_previousLoadedChunks.Contains(coord))
+                {
+                    changed = true;
+                    break;
+                }
+            }
+        }
+
+        if (!changed)
+            return;
+
+        _previousLoadedChunks.Clear();
+        foreach (var coord in _loaded.Keys)
+            _previousLoadedChunks.Add(coord);
+
+        LoadedChunksChanged?.Invoke();
     }
 
     private void AddCoordsAround(Vector2Int center, int radiusX, int radiusY, HashSet<Vector2Int> output)

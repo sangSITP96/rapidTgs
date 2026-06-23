@@ -9,6 +9,7 @@ namespace Game.Weather.Lake
         public List<int> CellIndies { get; set; } = new();
         public Vector2 Center { get; set; }
         public float Size { get; set; }
+        public Vector2Int SourceChunkCoord { get; set; }
 
         public float GetCloudSpawnChance(float baseChange = 0.2f)
         {
