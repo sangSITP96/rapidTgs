@@ -29,6 +29,10 @@ namespace Game.Weather.Cloud
         [SerializeField] private float _convergenceHoldRadius = 1.2f;
         [SerializeField] private float _convergenceAttractionStrength = 0.5f;
 
+        [Header("Released Cloud Exit")]
+        [SerializeField] private WeatherWorldBoundsProvider _worldBoundsProvider;
+        [SerializeField] private float _exitBoundsMargin = 0.5f;
+
         private static readonly Vector2 EastDriftDirection = Vector2.right;
 
         [Header("Visual")]
@@ -58,6 +62,7 @@ namespace Game.Weather.Cloud
         private void OnEnable()
         {
             if (_worldTime == null) _worldTime = FindFirstObjectByType<WorldTime>();
+            if (_convergenceManager == null) _convergenceManager = FindFirstObjectByType<ConvergenceManager>();
 
             if (_cloudSpawnTick != null)
             {
@@ -227,6 +232,12 @@ namespace Game.Weather.Cloud
                     MoveCloud(cloud, deltaHours);
                 }
 
+                if (cloud.IsReleasedFromConvergence && IsOutsideMapBounds(cloud.Position))
+                {
+                    DestroyCloud(cloud, i);
+                    continue;
+                }
+
                 if (cloud.VisualObject != null)
                 {
                     cloud.VisualObject.transform.position = GetCloudWorldPosition(
@@ -249,47 +260,75 @@ namespace Game.Weather.Cloud
 
         private void MoveCloud(Cloud cloud, float deltaHours)
         {
-            if (IsInConvergenceHoldZone(cloud.Position))
+            float stepDistance = _cloudSpeed * deltaHours;
+
+            if (cloud.IsReleasedFromConvergence)
             {
+                cloud.State = CloudState.Drifting;
+                cloud.Position += EastDriftDirection * stepDistance;
+                return;
+            }
+
+            if (TryGetHoldPoint(cloud.Position, out ConvergencePoint holdPoint))
+            {
+                bool justEnteredHold = cloud.State != CloudState.Held;
                 cloud.State = CloudState.Held;
+
+                if (justEnteredHold && !cloud.IsManagedByConvergence)
+                    _convergenceManager?.CaptureHeldCloud(cloud, holdPoint);
+
                 return;
             }
 
             if (cloud.State == CloudState.Held)
                 cloud.State = CloudState.Drifting;
 
-            Vector2 movement = EastDriftDirection * (_cloudSpeed * deltaHours);
-
             ConvergencePoint convergenceInRange = FindConvergenceInAttractionRange(cloud.Position);
+
             if (convergenceInRange != null)
             {
                 cloud.State = CloudState.InConvergence;
 
-                Vector2 toConvergence = (convergenceInRange.Position - cloud.Position).normalized;
-                movement += toConvergence * (_cloudSpeed * _convergenceAttractionStrength) * deltaHours;
-            }
-            else if (cloud.State == CloudState.InConvergence)
-            {
-                cloud.State = CloudState.Drifting;
+                Vector2 toConvergence = convergenceInRange.Position - cloud.Position;
+                if (toConvergence.sqrMagnitude > 0.0001f)
+                {
+                    float pullStrength = Mathf.Max(
+                        _convergenceAttractionStrength,
+                        convergenceInRange.AttractionStrength);
+
+                    cloud.Position += toConvergence.normalized * (stepDistance * pullStrength);
+                }
+
+                return;
             }
 
-            cloud.Position += movement;
+            if (cloud.State == CloudState.InConvergence)
+                cloud.State = CloudState.Drifting;
+
+            cloud.Position += EastDriftDirection * stepDistance;
         }
 
-        private bool IsInConvergenceHoldZone(Vector2 position)
+        private bool TryGetHoldPoint(Vector2 position, out ConvergencePoint point)
         {
+            point = null;
+
             if (_convergenceManager == null || _convergenceManager.ActivePoints == null)
                 return false;
 
             float holdRadius = Mathf.Max(0f, _convergenceHoldRadius);
+            float minDistance = float.MaxValue;
 
-            foreach (var point in _convergenceManager.ActivePoints)
+            foreach (var convergencePoint in _convergenceManager.ActivePoints)
             {
-                if (Vector2.Distance(position, point.Position) <= holdRadius)
-                    return true;
+                float distance = Vector2.Distance(position, convergencePoint.Position);
+                if (distance > holdRadius || distance >= minDistance)
+                    continue;
+
+                minDistance = distance;
+                point = convergencePoint;
             }
 
-            return false;
+            return point != null;
         }
 
         private ConvergencePoint FindConvergenceInAttractionRange(Vector2 position)
@@ -304,7 +343,7 @@ namespace Game.Weather.Cloud
             foreach (var point in _convergenceManager.ActivePoints)
             {
                 float distance = Vector2.Distance(position, point.Position);
-                if (distance >= attractionRadius || distance >= minDistance)
+                if (distance > attractionRadius || distance >= minDistance)
                     continue;
 
                 minDistance = distance;
@@ -330,6 +369,50 @@ namespace Game.Weather.Cloud
             {
                 DestroyCloud(cloud, index);
             }
+        }
+
+        public bool TryGetCloud(int cloudId, out Cloud cloud)
+        {
+            foreach (Cloud activeCloud in _clouds)
+            {
+                if (activeCloud.Id != cloudId)
+                    continue;
+
+                cloud = activeCloud;
+                return true;
+            }
+
+            cloud = null;
+            return false;
+        }
+
+        public bool ReleaseCloudFromConvergence(int cloudId)
+        {
+            if (!TryGetCloud(cloudId, out Cloud cloud) || !cloud.IsManagedByConvergence)
+                return false;
+
+            cloud.IsManagedByConvergence = false;
+            cloud.HeldConvergencePointId = -1;
+            cloud.IsReleasedFromConvergence = true;
+            cloud.State = CloudState.Drifting;
+            return true;
+        }
+
+        private bool IsOutsideMapBounds(Vector2 position)
+        {
+            if (_worldBoundsProvider == null)
+                _worldBoundsProvider = FindFirstObjectByType<WeatherWorldBoundsProvider>();
+
+            if (_worldBoundsProvider == null)
+                return false;
+
+            return !_worldBoundsProvider.IsInside(position, _exitBoundsMargin);
+        }
+
+        public void DissipateCloud(int cloudId)
+        {
+            if (TryGetCloud(cloudId, out Cloud cloud))
+                RemoveCloud(cloud);
         }
 
         public float ConvergenceAttractionRadius => _convergenceAttractionRadius;

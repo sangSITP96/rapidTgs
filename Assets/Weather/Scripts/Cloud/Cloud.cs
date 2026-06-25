@@ -31,12 +31,20 @@ namespace Game.Weather.Cloud
 
         public CloudVisualCategory VisualCategory;
         public float SourceLakeSize;
+
+        public bool IsManagedByConvergence;
+        public int HeldConvergencePointId = -1;
+        public float ConvergenceIntensity;
+        public bool IsReleasedFromConvergence;
         
         // Visual 
         public GameObject VisualObject;
 
         public bool IsExpired(double nowGameSeconds)
         {
+            if (IsManagedByConvergence || IsReleasedFromConvergence)
+                return false;
+
             return nowGameSeconds >= ExpireGameSeconds;
         }
     } 

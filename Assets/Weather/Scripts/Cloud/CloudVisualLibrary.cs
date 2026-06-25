@@ -16,6 +16,9 @@ namespace Game.Weather.Cloud
         [Tooltip("Radius simulation when spawn cloud")]
         public float MinSimulationRadius = 1f;
         public float MaxSimulationRadius = 1.5f;
+
+        [Tooltip("Intensity contributed to Convergence while this cloud is held")]
+        [Min(0f)] public float ConvergenceIntensity = 1f;
     }
 
     [CreateAssetMenu(
@@ -71,6 +74,22 @@ namespace Game.Weather.Cloud
         {
             category = GetCategoryForLakeSize(lakeSize);
             return TryPickPrefab(category, out prefab, out simulationRadius);
+        }
+
+        public float GetConvergenceIntensity(CloudVisualCategory category)
+        {
+            CloudVisualVariantSet set = FindSet(category);
+            if (set != null)
+                return set.ConvergenceIntensity;
+
+            return category switch
+            {
+                CloudVisualCategory.Small => 1f,
+                CloudVisualCategory.Medium => 2f,
+                CloudVisualCategory.Large => 4f,
+                CloudVisualCategory.Cluster => 8f,
+                _ => 1f
+            };
         }
 
         private CloudVisualVariantSet FindSet(CloudVisualCategory category)
