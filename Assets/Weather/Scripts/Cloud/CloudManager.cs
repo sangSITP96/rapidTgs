@@ -269,66 +269,66 @@ namespace Game.Weather.Cloud
                 return;
             }
 
-            if (TryGetHoldPoint(cloud.Position, out ConvergencePoint holdPoint))
-            {
-                bool justEnteredHold = cloud.State != CloudState.Held;
-                cloud.State = CloudState.Held;
-
-                if (justEnteredHold && !cloud.IsManagedByConvergence)
-                    _convergenceManager?.CaptureHeldCloud(cloud, holdPoint);
-
-                return;
-            }
-
-            if (cloud.State == CloudState.Held)
-                cloud.State = CloudState.Drifting;
-
             ConvergencePoint convergenceInRange = FindConvergenceInAttractionRange(cloud.Position);
 
             if (convergenceInRange != null)
             {
                 cloud.State = CloudState.InConvergence;
 
-                Vector2 toConvergence = convergenceInRange.Position - cloud.Position;
-                if (toConvergence.sqrMagnitude > 0.0001f)
-                {
-                    float pullStrength = Mathf.Max(
-                        _convergenceAttractionStrength,
-                        convergenceInRange.AttractionStrength);
+                if (!cloud.HasHoldTarget)
+                    AssignHoldTarget(cloud, convergenceInRange);
 
-                    cloud.Position += toConvergence.normalized * (stepDistance * pullStrength);
+                Vector2 targetPos = convergenceInRange.Position + cloud.HoldTargetOffset;
+                Vector2 toTarget = targetPos - cloud.Position;
+
+                float pullStrength = Mathf.Max(
+                    _convergenceAttractionStrength,
+                    convergenceInRange.AttractionStrength);
+                float moveDistance = stepDistance * pullStrength;
+
+                if (toTarget.magnitude <= moveDistance || toTarget.sqrMagnitude <= 0.0001f)
+                {
+                    cloud.Position = targetPos;
+                    cloud.State = CloudState.Held;
+
+                    if (!cloud.IsManagedByConvergence)
+                        _convergenceManager?.CaptureHeldCloud(cloud, convergenceInRange);
+
+                    return;
                 }
 
+                cloud.Position += toTarget.normalized * moveDistance;
                 return;
             }
 
             if (cloud.State == CloudState.InConvergence)
                 cloud.State = CloudState.Drifting;
 
+            cloud.HasHoldTarget = false;
+
             cloud.Position += EastDriftDirection * stepDistance;
         }
 
-        private bool TryGetHoldPoint(Vector2 position, out ConvergencePoint point)
+        // Distribute clouds around the convergence point instead of stacking on the center.
+        // The cloud settles in the same vertical half (upper/lower) it approached from.
+        private void AssignHoldTarget(Cloud cloud, ConvergencePoint point)
         {
-            point = null;
+            float holdRadius = Mathf.Max(0.01f, _convergenceHoldRadius);
 
-            if (_convergenceManager == null || _convergenceManager.ActivePoints == null)
-                return false;
+            Vector2 toCloud = cloud.Position - point.Position;
 
-            float holdRadius = Mathf.Max(0f, _convergenceHoldRadius);
-            float minDistance = float.MaxValue;
+            float halfSign;
+            if (Mathf.Abs(toCloud.y) < 0.0001f)
+                halfSign = Random.value < 0.5f ? 1f : -1f; // cloud sits exactly on the convergence (e.g. lake at center)
+            else
+                halfSign = Mathf.Sign(toCloud.y);
 
-            foreach (var convergencePoint in _convergenceManager.ActivePoints)
-            {
-                float distance = Vector2.Distance(position, convergencePoint.Position);
-                if (distance > holdRadius || distance >= minDistance)
-                    continue;
+            float t = Random.Range(0.12f, 0.88f);
+            float angle = halfSign > 0f ? Mathf.PI * t : -Mathf.PI * t;
+            float radius = Random.Range(holdRadius * 0.25f, holdRadius * 0.85f);
 
-                minDistance = distance;
-                point = convergencePoint;
-            }
-
-            return point != null;
+            cloud.HoldTargetOffset = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+            cloud.HasHoldTarget = true;
         }
 
         private ConvergencePoint FindConvergenceInAttractionRange(Vector2 position)
@@ -394,6 +394,7 @@ namespace Game.Weather.Cloud
             cloud.IsManagedByConvergence = false;
             cloud.HeldConvergencePointId = -1;
             cloud.IsReleasedFromConvergence = true;
+            cloud.HasHoldTarget = false;
             cloud.State = CloudState.Drifting;
             return true;
         }

@@ -36,6 +36,10 @@ namespace Game.Weather.Cloud
         public int HeldConvergencePointId = -1;
         public float ConvergenceIntensity;
         public bool IsReleasedFromConvergence;
+
+        // Target offset around the convergence point so clouds don't pile on the center
+        public bool HasHoldTarget;
+        public Vector2 HoldTargetOffset;
         
         // Visual 
         public GameObject VisualObject;
