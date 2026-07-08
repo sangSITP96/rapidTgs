@@ -8,6 +8,7 @@ public class KTGSFollowMarble : MonoBehaviour
     [SerializeField] private TileSingleHighlight _tileHighlight;
 
     [Header("Recenter")]
+    [SerializeField] private bool _followMarble = false;
     [SerializeField] private float recenterDistance = 1.5f;
 
     [SerializeField] private bool snapToCell = true;
@@ -22,6 +23,9 @@ public class KTGSFollowMarble : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (!_followMarble || _marble == null || _tgs == null)
+            return;
+
         Vector3 target = new Vector3(
             _marble.position.x,
             _lastCenter.y,

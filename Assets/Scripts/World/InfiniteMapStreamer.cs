@@ -86,6 +86,36 @@ public class InfiniteMapStreamer : MonoBehaviour
 
     public bool IsChunkLoaded(Vector2Int coord) => _loaded.ContainsKey(coord);
 
+    public bool TryGetLoadedChunksWorldBounds(
+        out float minX,
+        out float maxX,
+        out float minZ,
+        out float maxZ)
+    {
+        minX = maxX = minZ = maxZ = 0f;
+
+        if (_loaded.Count == 0)
+            return TryGetWorldBounds(out minX, out maxX, out minZ, out maxZ);
+
+        minX = float.PositiveInfinity;
+        maxX = float.NegativeInfinity;
+        minZ = float.PositiveInfinity;
+        maxZ = float.NegativeInfinity;
+
+        foreach (var coord in _loaded.Keys)
+        {
+            if (!TryGetChunkWorldBounds(coord, out float cMinX, out float cMaxX, out float cMinZ, out float cMaxZ))
+                continue;
+
+            minX = Mathf.Min(minX, cMinX);
+            maxX = Mathf.Max(maxX, cMaxX);
+            minZ = Mathf.Min(minZ, cMinZ);
+            maxZ = Mathf.Max(maxZ, cMaxZ);
+        }
+
+        return minX < maxX && minZ < maxZ;
+    }
+
     public Vector2Int WorldToChunkCoord(Vector3 worldPos) => WorldToCoord(worldPos);
 
     public bool TryWorldToChunkLocalUV(Vector3 worldPos, out Vector2Int coord, out Vector2 localUV)
