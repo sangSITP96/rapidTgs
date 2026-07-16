@@ -145,6 +145,9 @@ public class WorldTerrainQuery : MonoBehaviour
     {
         if (data == null) return false;
 
+        if (data.HasBakedLakes)
+            return data.BakedLakes.IsBlockedUV(sampleUV);
+
         float s = SampleGray(data.SmallLake, sampleUV, 0f);
         if (s > lakeThreshold) return true;
 

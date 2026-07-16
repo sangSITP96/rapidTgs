@@ -114,6 +114,22 @@ namespace Game.Weather.Lake
                     continue;
                 }
 
+                MapChunkData chunkData = _mapStreamer.GetChunkData(coord);
+
+                if (chunkData != null && chunkData.HasBakedLakes)
+                {
+                    AddLakesFromBakedData(
+                        chunkData,
+                        coord,
+                        minX,
+                        maxX,
+                        minZ,
+                        maxZ,
+                        ref lakeId);
+
+                    continue;
+                }
+
                 var isLake = new bool[resolution, resolution];
                 int lakePixelCount = 0;
 
@@ -167,6 +183,41 @@ namespace Game.Weather.Lake
             {
                 Debug.Log(
                     $"[Lake] id={lake.Id}, chunk={lake.SourceChunkCoord}, size={lake.Size}, center={lake.Center}");
+            }
+        }
+
+        private void AddLakesFromBakedData(
+            MapChunkData chunkData,
+            Vector2Int coord,
+            float minX,
+            float maxX,
+            float minZ,
+            float maxZ,
+            ref int lakeId)
+        {
+            var regions = chunkData.BakedLakes.Regions;
+
+            if (regions == null)
+                return;
+
+            for (int i = 0; i < regions.Count; i++)
+            {
+                var region = regions[i];
+
+                if (region == null || region.PixelCount < _minimumLakeMaskPixels)
+                {
+                    continue;
+                }
+
+                float worldX = Mathf.Lerp(minX, maxX, region.CenterUV.x);
+                float worldZ = Mathf.Lerp(minZ, maxZ, region.CenterUV.y);
+
+                _lakes.Add(new Lake(lakeId++)
+                {
+                    SourceChunkCoord = coord,
+                    Size = region.PixelCount,
+                    Center = new Vector2(worldX, worldZ)
+                });
             }
         }
 

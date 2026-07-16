@@ -32,12 +32,12 @@ public class TileSingleHighlight : MonoBehaviour
 
     private void OnEnable()
     {
-        TGSViewportSync.GridSynced += HandleGridSynced;
+        //TGSViewportSync.GridSynced += HandleGridSynced;
     }
 
     private void OnDisable()
     {
-        TGSViewportSync.GridSynced -= HandleGridSynced;
+        //TGSViewportSync.GridSynced -= HandleGridSynced;
     }
 
     private void Start()

@@ -30,7 +30,9 @@ namespace Game.Weather.Cloud
         [SerializeField] private float _convergenceAttractionStrength = 0.5f;
 
         [Header("Released Cloud Exit")]
+        [Tooltip("Optional. If empty, bounds are taken directly from the InfiniteMapStreamer.")]
         [SerializeField] private WeatherWorldBoundsProvider _worldBoundsProvider;
+        [SerializeField] private InfiniteMapStreamer _mapStreamer;
         [SerializeField] private float _exitBoundsMargin = 0.5f;
 
         private static readonly Vector2 EastDriftDirection = Vector2.right;
@@ -401,13 +403,36 @@ namespace Game.Weather.Cloud
 
         private bool IsOutsideMapBounds(Vector2 position)
         {
+            if (!TryGetMapBounds(out Vector2 min, out Vector2 max))
+                return false;
+
+            return position.x < min.x - _exitBoundsMargin ||
+                   position.x > max.x + _exitBoundsMargin ||
+                   position.y < min.y - _exitBoundsMargin ||
+                   position.y > max.y + _exitBoundsMargin;
+        }
+
+        private bool TryGetMapBounds(out Vector2 min, out Vector2 max)
+        {
+            min = Vector2.zero;
+            max = Vector2.zero;
+
+            if (_mapStreamer != null &&
+                _mapStreamer.TryGetWorldBounds(
+                    out float minX, out float maxX, out float minZ, out float maxZ))
+            {
+                min = new Vector2(minX, minZ);
+                max = new Vector2(maxX, maxZ);
+                return true;
+            }
+
             if (_worldBoundsProvider == null)
                 _worldBoundsProvider = FindFirstObjectByType<WeatherWorldBoundsProvider>();
 
-            if (_worldBoundsProvider == null)
-                return false;
+            if (_worldBoundsProvider != null)
+                return _worldBoundsProvider.TryGetBounds(out min, out max);
 
-            return !_worldBoundsProvider.IsInside(position, _exitBoundsMargin);
+            return false;
         }
 
         public void DissipateCloud(int cloudId)
