@@ -164,7 +164,6 @@ public static class LakeColorDetection
         bool[] visited = new bool[width * height];
 
         List<BakedLakeRegion> acceptedRegions = new List<BakedLakeRegion>();
-        byte[] blockedMask = new byte[width * height];
 
         var candidateCount = 0;
         var rejectedSmallCount = 0;
@@ -214,8 +213,6 @@ public static class LakeColorDetection
                     var pixelX = index % width;
                     var pixelY = index / width;
 
-                    blockedMask[index] = 1;
-
                     sumX += pixelX;
                     sumY += pixelY;
 
@@ -248,7 +245,8 @@ public static class LakeColorDetection
                     regionPixels.Count,
                     bounds,
                     new Vector2(centerU, centerV),
-                    isBig));
+                    isBig,
+                    BuildRowSpans(regionPixels, width)));
             }
         }
 
@@ -258,7 +256,6 @@ public static class LakeColorDetection
             TextureWidth = width,
             TextureHeight = height,
             BakedUtcTicks = System.DateTime.UtcNow.Ticks,
-            BlockedMask = blockedMask,
             Regions = acceptedRegions
         };
 
@@ -291,8 +288,14 @@ public static class LakeColorDetection
         Color32 lake = lakeColor;
         Color32 empty = emptyColor;
 
-        for(int i = 0; i< colors.Length; i++)
-            colors[i] = data.BlockedMask[i] != 0 ? lake : empty;
+        for (int y = 0; y < data.TextureHeight; y++)
+        {
+            for (int x = 0; x < data.TextureWidth; x++)
+            {
+                int index = y * data.TextureWidth + x;
+                colors[index] = data.IsBlockedPixel(x, y) ? lake : empty;
+            }
+        }
 
         tex.SetPixels32(colors);
         tex.Apply(false, false);
@@ -300,6 +303,41 @@ public static class LakeColorDetection
         tex.wrapMode = TextureWrapMode.Clamp;
 
         return tex;
+    }
+
+    private static List<BakedLakeRowSpan> BuildRowSpans(List<int> regionPixels, int width)
+    {
+        regionPixels.Sort();
+
+        var spans = new List<BakedLakeRowSpan>();
+
+        if (regionPixels.Count == 0)
+            return spans;
+
+        int currentY = regionPixels[0] / width;
+        int spanStartX = regionPixels[0] % width;
+        int previousX = spanStartX;
+
+        for (int i = 1; i < regionPixels.Count; i++)
+        {
+            int index = regionPixels[i];
+            int x = index % width;
+            int y = index / width;
+
+            if (y == currentY && x == previousX + 1)
+            {
+                previousX = x;
+                continue;
+            }
+
+            spans.Add(new BakedLakeRowSpan(currentY, spanStartX, previousX));
+            currentY = y;
+            spanStartX = x;
+            previousX = x;
+        }
+
+        spans.Add(new BakedLakeRowSpan(currentY, spanStartX, previousX));
+        return spans;
     }
 
     private static void AccumulateAround(

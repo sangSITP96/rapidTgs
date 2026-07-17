@@ -3,6 +3,26 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
+public struct BakedLakeRowSpan
+{
+    public int Y;
+    public int XMin;
+    public int XMax;
+
+    public BakedLakeRowSpan(int y, int xMin, int xMax)
+    {
+        Y = y;
+        XMin = xMin;
+        XMax = xMax;
+    }
+
+    public bool Contains(int x, int y)
+    {
+        return y == Y && x >= XMin && x <= XMax;
+    }
+}
+
+[Serializable]
 public class BakedLakeRegion
 {
     public int Id;
@@ -10,6 +30,9 @@ public class BakedLakeRegion
     public RectInt PixelBounds;
     public Vector2 CenterUV;
     public bool IsBig;
+
+    [HideInInspector]
+    public List<BakedLakeRowSpan> RowSpans = new();
 
     public BakedLakeRegion()
     { 
@@ -20,13 +43,29 @@ public class BakedLakeRegion
         int pixelCount,
         RectInt pixelBounds,
         Vector2 centerUV,
-        bool isBig)
+        bool isBig,
+        List<BakedLakeRowSpan> rowSpans)
     {
         Id = id;
         PixelCount = pixelCount;
         PixelBounds = pixelBounds;
         CenterUV = centerUV;
         IsBig = isBig;
+        RowSpans = rowSpans ?? new List<BakedLakeRowSpan>();
+    }
+
+    public bool ContainsPixel(int x, int y)
+    {
+        if (!PixelBounds.Contains(new Vector2Int(x, y)) || RowSpans == null)
+            return false;
+
+        for (int i = 0; i < RowSpans.Count; i++)
+        {
+            if (RowSpans[i].Contains(x, y))
+                return true;
+        }
+
+        return false;
     }
 }
 
@@ -38,15 +77,13 @@ public class BakedLakeChunkData
     public int TextureHeight;
     public long BakedUtcTicks;
 
-
-    public byte[] BlockedMask;
     public List<BakedLakeRegion> Regions = new();
 
     public bool HasMask =>
-        BlockedMask != null &&
         TextureWidth > 0 &&
         TextureHeight > 0 &&
-        BlockedMask.Length == TextureWidth * TextureHeight;
+        Regions != null &&
+        HasAnyRowSpan();
 
     public bool IsBlockedPixel(int x, int y)
     {
@@ -56,7 +93,14 @@ public class BakedLakeChunkData
         if(x < 0 || y < 0 || x >= TextureWidth || y >= TextureHeight)
             return false;
 
-        return BlockedMask[y * TextureWidth + x] != 0;
+        for (int i = 0; i < Regions.Count; i++)
+        {
+            BakedLakeRegion region = Regions[i];
+            if (region != null && region.ContainsPixel(x, y))
+                return true;
+        }
+
+        return false;
     }
 
     public bool IsBlockedUV(Vector2 uv)
@@ -74,7 +118,7 @@ public class BakedLakeChunkData
            0,
            TextureHeight - 1);
 
-        return BlockedMask[y * TextureWidth + x] != 0;
+        return IsBlockedPixel(x, y);
     }
 
     public void Clear()
@@ -83,7 +127,18 @@ public class BakedLakeChunkData
         TextureWidth = 0;
         TextureHeight = 0;
         BakedUtcTicks = 0;
-        BlockedMask = null;
         Regions = new List<BakedLakeRegion>();
+    }
+
+    private bool HasAnyRowSpan()
+    {
+        for (int i = 0; i < Regions.Count; i++)
+        {
+            BakedLakeRegion region = Regions[i];
+            if (region != null && region.RowSpans != null && region.RowSpans.Count > 0)
+                return true;
+        }
+
+        return false;
     }
 }

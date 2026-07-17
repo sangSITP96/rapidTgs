@@ -121,7 +121,7 @@ public class WorldTerrainQuery : MonoBehaviour
         if (TryHit(worldPos, out var hit, out var chunk) && chunk.Data != null)
         {
             Vector2 sampleUV = GetSampleUV(chunk, hit.textureCoord);
-            return IsLakeFromData(chunk.Data, sampleUV);
+            return chunk.Data.IsLakeUV(sampleUV) || IsLakeFromData(chunk.Data, sampleUV);
         }
 
         if (_streamer != null &&
@@ -131,6 +131,12 @@ public class WorldTerrainQuery : MonoBehaviour
         }
 
         return false;
+    }
+
+    public bool IsMovementBlocked(Vector3 worldPos)
+    {
+        // For now lake is the only baked movement blocker.
+        return IsLake(worldPos);
     }
 
     public bool IsLakeAtChunk(Vector2Int chunkCoord, Vector2 localUV)
@@ -146,7 +152,7 @@ public class WorldTerrainQuery : MonoBehaviour
         if (data == null) return false;
 
         if (data.HasBakedLakes)
-            return data.BakedLakes.IsBlockedUV(sampleUV);
+            return data.IsLakeUV(sampleUV);
 
         float s = SampleGray(data.SmallLake, sampleUV, 0f);
         if (s > lakeThreshold) return true;

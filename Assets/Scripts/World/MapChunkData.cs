@@ -24,4 +24,9 @@ public class MapChunkData : ScriptableObject
 
        return false;
     }
+
+    public bool IsLakePixel(int x, int y)
+    {
+        return HasBakedLakes && BakedLakes.IsBlockedPixel(x, y);
+    }
 }

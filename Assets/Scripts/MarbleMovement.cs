@@ -331,11 +331,11 @@ public class MarbleMovement : MonoBehaviour
         Vector3 nextPos = current + direction * stepDistance;
 
         //float brightness = GetBrightnessAtPosition(nextPos);
-        var isLake = _worldTerrainQuery != null
-                        ?_worldTerrainQuery.IsLake(nextPos)
+        var movementBlocked = _worldTerrainQuery != null
+                        ?_worldTerrainQuery.IsMovementBlocked(nextPos)
                         :TerrainMaskUtility.Instance.IsLake(nextPos);   
 
-        if (isLake)
+        if (movementBlocked)
         {
             _moving = false;
             return;
