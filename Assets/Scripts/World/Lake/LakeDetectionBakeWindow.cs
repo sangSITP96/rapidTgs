@@ -34,6 +34,7 @@ public class LakeDetectionBakeWindow : EditorWindow
     [SerializeField] private bool _connectDiagonals;
     [SerializeField] private bool _skipLockedChunks = true;
     [SerializeField] private bool _forceRebake;
+    [SerializeField] private bool _preserveLockedLakesOnVisualChange = true;
     [SerializeField] private bool _exportPreviewMasks;
     [SerializeField] private DefaultAsset _previewMaskFolder;
     [SerializeField] private bool _clearLegacyGrayscaleMasks = true;
@@ -183,8 +184,17 @@ public class LakeDetectionBakeWindow : EditorWindow
         _minLakePixels = EditorGUILayout.IntField("Min Lake Pixels", _minLakePixels);
         _bigLakePixelThreshold = EditorGUILayout.IntField("Big Lake Threshold", _bigLakePixelThreshold);
         _connectDiagonals = EditorGUILayout.Toggle("8-Connected Regions", _connectDiagonals);
-        _skipLockedChunks = EditorGUILayout.Toggle("Skip Lockled Chunks", _skipLockedChunks);
+        _skipLockedChunks = EditorGUILayout.Toggle("Skip Locked Chunks", _skipLockedChunks);
         _forceRebake = EditorGUILayout.Toggle("Force Rebake Locked", _forceRebake);
+        _preserveLockedLakesOnVisualChange = EditorGUILayout.Toggle(
+            "Preserve Locked Lakes On Visual Change",
+            _preserveLockedLakesOnVisualChange);
+
+        EditorGUILayout.HelpBox(
+            "When enabled, changing a chunk Visual updates its texture reference but keeps existing locked lake data. " +
+            "This prevents armies, units, props, or VFX with lake-like colors from becoming lakes. " +
+            "Force Rebake Locked always overrides this option.",
+            MessageType.Info);
 
         _clearLegacyGrayscaleMasks = EditorGUILayout.Toggle("Clear Legacy Small/BigLake Masks", _clearLegacyGrayscaleMasks);
         _exportPreviewMasks = EditorGUILayout.Toggle("Export Preview Mask PNGs", _exportPreviewMasks);
@@ -313,16 +323,6 @@ public class LakeDetectionBakeWindow : EditorWindow
 
                 try
                 {
-                    if (target.Data != null &&
-                        target.Data.HasBakedLakes &&
-                        _skipLockedChunks &&
-                        !_forceRebake)
-                    {
-                        skipped++;
-                        log.AppendLine($"SKIP locked {target.Label}");
-                        continue;
-                    }
-
                     Texture2D visual = target.Visual;
 
                     if (visual == null)
@@ -332,21 +332,45 @@ public class LakeDetectionBakeWindow : EditorWindow
                         continue;
                     }
 
+                    MapChunkData data = target.Data;
+                    bool visualChanged = data != null && data.Visual != visual;
+                    bool lakeDataLocked =
+                        data != null &&
+                        data.BakedLakes != null &&
+                        data.BakedLakes.IsLocked;
+
                     visual = EnsureTextureReadyForPixelExactRead(visual);
+
+                    if (lakeDataLocked && !_forceRebake)
+                    {
+                        if (visualChanged && _preserveLockedLakesOnVisualChange)
+                        {
+                            data.Visual = visual;
+                            EditorUtility.SetDirty(data);
+                            skipped++;
+                            log.AppendLine(
+                                $"KEEP locked lakes {target.Label}: Visual updated without rebaking lake data");
+                            continue;
+                        }
+
+                        if (!visualChanged && _skipLockedChunks)
+                        {
+                            skipped++;
+                            log.AppendLine($"SKIP locked {target.Label}");
+                            continue;
+                        }
+                    }
 
                     var result = LakeColorDetection.DetectAndBake(
                         visual,
                         _palette,
                         settings);
 
-                    MapChunkData data = target.Data;
-
                     if (data == null)
-                    {
                         data = CreateOrLoadChunkData(target.OutputAssetPath, target.Coord);
-                        data.Visual = visual;
-                    }
 
+                    // Always update the asset reference when a bake is performed.
+                    data.Visual = visual;
                     data.BakedLakes = result.Data;
 
                     if (_clearLegacyGrayscaleMasks)
@@ -617,14 +641,14 @@ public class LakeDetectionBakeWindow : EditorWindow
             !importer.isReadable ||
             importer.mipmapEnabled ||
             importer.textureCompression != TextureImporterCompression.Uncompressed ||
-            importer.filterMode != FilterMode.Point;
+            importer.filterMode != FilterMode.Bilinear;
 
         if (dirty)
         {
             importer.isReadable = true;
             importer.mipmapEnabled = false;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
-            importer.filterMode = FilterMode.Point;
+            importer.filterMode = FilterMode.Bilinear;
             importer.npotScale = TextureImporterNPOTScale.None;
             importer.SaveAndReimport();
         }

@@ -19,6 +19,7 @@ namespace Game.Weather.Cloud
         [SerializeField] private CoverageTracker _coverageTracker;
 
         [Header("Config")] [SerializeField] private float _cloudSpawnChance = 0.2f;
+        [SerializeField, Min(1)] private int _spawnBudgetPerFrame = 2;
         [SerializeField] private float _cloudSpeed = 2f;
         [SerializeField] private float _spawnDuration = 2f;
         [SerializeField] private float _minLifetimeMinutes = 2f;
@@ -56,6 +57,8 @@ namespace Game.Weather.Cloud
         public IReadOnlyList<Cloud> ActiveClouds => _clouds;
 
         private readonly List<Cloud> _clouds = new();
+        private readonly Queue<Lake.Lake> _pendingSpawns = new();
+        private readonly HashSet<int> _pendingLakeIds = new();
         private int _nextCloudId = 0;
 
         private const double SecondsPerMinute = 60.0;
@@ -88,6 +91,39 @@ namespace Game.Weather.Cloud
             {
                 _worldTime.OnTimeAdvanced -= HandleTimeAdvanced;
             }
+
+            _pendingSpawns.Clear();
+            _pendingLakeIds.Clear();
+        }
+
+        private void Update()
+        {
+            int budget = Mathf.Max(1, _spawnBudgetPerFrame);
+
+            while (budget-- > 0 && _pendingSpawns.Count > 0)
+            {
+                Lake.Lake lake = _pendingSpawns.Dequeue();
+                _pendingLakeIds.Remove(lake.Id);
+
+                if (!IsLakeCurrentlyLoaded(lake.Id))
+                    continue;
+
+                SpawnCloudAtLake(lake, _worldTime != null ? _worldTime.TotalGameSeconds : 0d);
+            }
+        }
+
+        private bool IsLakeCurrentlyLoaded(int lakeId)
+        {
+            if (_lakeDetector == null)
+                return false;
+
+            foreach (Lake.Lake lake in _lakeDetector.Lakes)
+            {
+                if (lake.Id == lakeId)
+                    return true;
+            }
+
+            return false;
         }
         
         // Spawn clouds from lakes
@@ -98,10 +134,8 @@ namespace Game.Weather.Cloud
             foreach (var lake in _lakeDetector.Lakes)
             {
                 float chance = lake.GetCloudSpawnChance(_cloudSpawnChance);
-                if (Random.value < chance)
-                {
-                    SpawnCloudAtLake(lake, gameTime);
-                }
+                if (Random.value < chance && _pendingLakeIds.Add(lake.Id))
+                    _pendingSpawns.Enqueue(lake);
             }
         }
 

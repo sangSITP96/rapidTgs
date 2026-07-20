@@ -102,12 +102,19 @@ public class GridVisibilityController : MonoBehaviour
 
     public void ShowGrid()
     {
-        //_terrainGridSystem.showCells = true;
-        _isGridVisible = true;
+        if (_terrainGridSystem == null)
+            return;
+
+        // Cell borders stay hidden; click highlights use individual region surfaces.
+        _terrainGridSystem.showCells = false;
+        _isGridVisible = false;
     }
 
     public void HideGrid()
     {
+        if (_terrainGridSystem == null)
+            return;
+
         _terrainGridSystem.showCells = false;
         _isGridVisible = false;
     }

@@ -19,6 +19,7 @@ namespace Game.Weather.Fog
         [SerializeField] private float _fogSpawnChance = 0.5f;
 
         [SerializeField] private bool _removeFogForMissingLakes = true;
+        [SerializeField, Min(1)] private int _spawnBudgetPerFrame = 2;
 
         [Header("Visual")]
         [SerializeField] private FogVisualLibrary _fogVisualLibrary;
@@ -32,6 +33,8 @@ namespace Game.Weather.Fog
 
         private readonly List<Fog> _fogs = new();
         private readonly Dictionary<int, Fog> _fogBylakeId = new();
+        private readonly Queue<Lake.Lake> _pendingSpawns = new();
+        private readonly HashSet<int> _pendingLakeIds = new();
 
         private int _nextFogId;
 
@@ -45,6 +48,25 @@ namespace Game.Weather.Fog
         {
             if (_fogSpawnTick != null)
                 _fogSpawnTick.OnTick -= HandleSpawnTick;
+
+            _pendingSpawns.Clear();
+            _pendingLakeIds.Clear();
+        }
+
+        private void Update()
+        {
+            int budget = Mathf.Max(1, _spawnBudgetPerFrame);
+
+            while (budget-- > 0 && _pendingSpawns.Count > 0)
+            {
+                Lake.Lake lake = _pendingSpawns.Dequeue();
+                _pendingLakeIds.Remove(lake.Id);
+
+                if (_fogBylakeId.ContainsKey(lake.Id) || !LakeExists(lake.Id))
+                    continue;
+
+                SpawnFogAtLake(lake);
+            }
         }
 
         private void HandleSpawnTick(long tickIndex, double gameTime)
@@ -59,10 +81,8 @@ namespace Game.Weather.Fog
                 if (_fogBylakeId.ContainsKey(lake.Id))
                     continue;
 
-                if (Random.value < _fogSpawnChance)
-                {
-                    SpawnFogAtLake(lake);
-                }
+                if (Random.value < _fogSpawnChance && _pendingLakeIds.Add(lake.Id))
+                    _pendingSpawns.Enqueue(lake);
             }
         }
 
@@ -157,6 +177,9 @@ namespace Game.Weather.Fog
 
         public void ClearAllFog()
         {
+            _pendingSpawns.Clear();
+            _pendingLakeIds.Clear();
+
             for (int i = _fogs.Count - 1; i >= 0; i--)
                 DestroyFog(_fogs[i], i);
         }

@@ -8,7 +8,9 @@ namespace Game.Weather.Lake
         public int Id { get; set; }
         public List<int> CellIndies { get; set; } = new();
         public Vector2 Center { get; set; }
+        /// <summary>Normalized weather area, compatible with the old 48x48 lake scan thresholds.</summary>
         public float Size { get; set; }
+        public int BakedPixelCount { get; set; }
         public Vector2Int SourceChunkCoord { get; set; }
 
         public float GetCloudSpawnChance(float baseChange = 0.2f)

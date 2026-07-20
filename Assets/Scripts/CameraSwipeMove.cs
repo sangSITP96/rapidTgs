@@ -74,7 +74,7 @@ public class CameraSwipeMove : MonoBehaviour
     private void ResolveMapStreamer()
     {
         if (_mapStreamer == null)
-            _mapStreamer = FindObjectOfType<InfiniteMapStreamer>();
+            _mapStreamer = FindFirstObjectByType<InfiniteMapStreamer>();
     }
 
     private void FocusOnMarble()

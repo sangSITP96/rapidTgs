@@ -16,7 +16,12 @@ public class MapChunkRuntime : MonoBehaviour
 
         var mat = GroundRenderer.material;
         if (data.Visual != null)
+        {
+            data.Visual.filterMode = FilterMode.Bilinear;
+            data.Visual.wrapMode = TextureWrapMode.Clamp;
+            data.Visual.anisoLevel = 1;
             mat.mainTexture = data.Visual;
+        }
 
         mat.mainTextureScale = Vector2.one;
         mat.mainTextureOffset = Vector2.zero;

@@ -31,6 +31,8 @@ public class InfiniteMapStreamer : MonoBehaviour
     [SerializeField] private Vector2 _worldOrigin = Vector2.zero;
 
     [Header("Streaming Radius (int tile units)")]
+    [SerializeField] private bool _streamMarbleNeighborhoodOnly = true;
+
     [SerializeField] private int _cameraRadiusX = 2;
     [SerializeField] private int _cameraRadiusY = 2;
 
@@ -72,6 +74,7 @@ public class InfiniteMapStreamer : MonoBehaviour
 
     private readonly Dictionary<Vector2Int, MapChunkRuntime> _loaded = new();
     private readonly Dictionary<Vector2Int, MapChunkData> _dataMap = new();
+    private readonly Queue<MapChunkRuntime> _chunkPool = new();
 
     private Vector2Int _currentCoord;
 
@@ -206,7 +209,11 @@ public class InfiniteMapStreamer : MonoBehaviour
     public Vector3 ClampCameraPosition(Vector3 cameraPos, Camera camera, float padding)
     {
         if (camera == null ||
-            !TryGetWorldBounds(out float minX, out float maxX, out float minZ, out float maxZ))
+            !TryGetLoadedChunksWorldBounds(
+                out float minX,
+                out float maxX,
+                out float minZ,
+                out float maxZ))
         {
             return cameraPos;
         }
@@ -241,7 +248,7 @@ public class InfiniteMapStreamer : MonoBehaviour
             return;
 
         if (_terrainQuery == null)
-            _terrainQuery = FindObjectOfType<WorldTerrainQuery>();
+            _terrainQuery = FindFirstObjectByType<WorldTerrainQuery>();
 
         EnsureChunkLoaded(chunkCoord);
 
@@ -288,27 +295,39 @@ public class InfiniteMapStreamer : MonoBehaviour
         if (_rows <= 0 || _columns <= 0 || _chunkPrefab == null) return;
 
         ResolveCameraTransform();
-        if (_cameraTransform == null || _marble == null) return;
+        if (_marble == null) return;
 
-        Vector2Int camCoord = WorldToCoord(_cameraTransform.position);
         Vector2Int marbleCoord = WorldToCoord(_marble.position);
 
         var mustLoad = new HashSet<Vector2Int>();
-
-        AddCoordsAround(camCoord, _cameraRadiusX, _cameraRadiusY, mustLoad);
-        AddCoordsAround(marbleCoord, _marbleRadiusX, _marbleRadiusY, mustLoad);
-
         var keepAlive = new HashSet<Vector2Int>();
 
-        AddCoordsAround(camCoord, _cameraRadiusX + _unloadMargin, _cameraRadiusY + _unloadMargin, keepAlive);
-        AddCoordsAround(marbleCoord, _marbleRadiusX + _unloadMargin, _marbleRadiusY + _unloadMargin, keepAlive);
-
-        foreach(var c in mustLoad)
+        if (_streamMarbleNeighborhoodOnly)
         {
-            if(!_loaded.ContainsKey(c))
-            {
-                SpawnChunk(c);
-            }
+            // Current marble chunk plus its 8 direct/diagonal neighbours.
+            AddCoordsAround(marbleCoord, 1, 1, mustLoad);
+            keepAlive.UnionWith(mustLoad);
+        }
+        else
+        {
+            if (_cameraTransform == null)
+                return;
+
+            Vector2Int camCoord = WorldToCoord(_cameraTransform.position);
+            AddCoordsAround(camCoord, _cameraRadiusX, _cameraRadiusY, mustLoad);
+            AddCoordsAround(marbleCoord, _marbleRadiusX, _marbleRadiusY, mustLoad);
+
+            AddCoordsAround(
+                camCoord,
+                _cameraRadiusX + _unloadMargin,
+                _cameraRadiusY + _unloadMargin,
+                keepAlive);
+
+            AddCoordsAround(
+                marbleCoord,
+                _marbleRadiusX + _unloadMargin,
+                _marbleRadiusY + _unloadMargin,
+                keepAlive);
         }
 
         var toUnload = new List<Vector2Int>();
@@ -324,11 +343,15 @@ public class InfiniteMapStreamer : MonoBehaviour
         foreach(var c in toUnload)
         {
             if(_loaded.TryGetValue(c, out var runtime) && runtime != null)
-            {
-                Destroy(runtime.gameObject);
-            }
+                RecycleChunk(runtime);
 
             _loaded.Remove(c);
+        }
+
+        foreach(var c in mustLoad)
+        {
+            if(!_loaded.ContainsKey(c))
+                SpawnChunk(c);
         }
 
         if(force)
@@ -390,11 +413,27 @@ public class InfiniteMapStreamer : MonoBehaviour
     private void SpawnChunk(Vector2Int coord)
     {
         Vector3 pos = CoordToWorld(coord);
+        MapChunkRuntime runtime = null;
+        GameObject go;
 
-        var go = Instantiate(_chunkPrefab, pos, Quaternion.Euler(90f, 0f, 0f), transform);
-        go.transform.position = pos;
+        if (_chunkPool.Count > 0)
+        {
+            runtime = _chunkPool.Dequeue();
+            go = runtime.gameObject;
+            go.transform.SetParent(transform, false);
+            go.transform.SetPositionAndRotation(pos, Quaternion.Euler(90f, 0f, 0f));
+            go.SetActive(true);
+        }
+        else
+        {
+            go = Instantiate(
+                _chunkPrefab,
+                pos,
+                Quaternion.Euler(90f, 0f, 0f),
+                transform);
 
-        var runtime = go.GetComponent<MapChunkRuntime>();
+            runtime = go.GetComponent<MapChunkRuntime>();
+        }
 
         if(runtime == null)
         {
@@ -402,12 +441,20 @@ public class InfiniteMapStreamer : MonoBehaviour
             return;
         }
 
-        var rendererRef = go.GetComponentInChildren<Renderer>();
+        var rendererRef = runtime.GroundRenderer != null
+            ? runtime.GroundRenderer
+            : go.GetComponentInChildren<Renderer>();
 
         var data = ResolveData(coord);
 
         runtime.Init(coord, data, rendererRef, _columns, _rows);
         _loaded[coord] = runtime;
+    }
+
+    private void RecycleChunk(MapChunkRuntime runtime)
+    {
+        runtime.gameObject.SetActive(false);
+        _chunkPool.Enqueue(runtime);
     }
 
     private MapChunkData ResolveData(Vector2Int coord)
