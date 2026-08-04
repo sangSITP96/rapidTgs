@@ -123,6 +123,9 @@ namespace Game.Weather.Convergence
             if (cloud == null || point == null || cloud.IsManagedByConvergence)
                 return;
 
+            if (cloud.IsRainBand || cloud.IsEvolvingToRain)
+                return;
+
             float intensity = _cloudVisualLibrary != null
                 ? _cloudVisualLibrary.GetConvergenceIntensity(cloud.VisualCategory)
                 : 1f;
@@ -203,14 +206,28 @@ namespace Game.Weather.Convergence
             }
         }
 
-        private void ReleaseHeldCloud(HeldCloudRecord record)
+        public bool TryReleaseHeldCloud(int cloudId, bool markAsReleased = true)
         {
+            if (!_heldByCloudId.TryGetValue(cloudId, out HeldCloudRecord record))
+                return false;
+
             UnregisterHeldCloud(record);
 
             if (_cloudManager != null)
-                _cloudManager.ReleaseCloudFromConvergence(record.CloudId);
+            {
+                if (markAsReleased)
+                    _cloudManager.ReleaseCloudFromConvergence(record.CloudId);
+                else
+                    _cloudManager.TryReleaseHeldCloudFromConvergence(record.CloudId);
+            }
 
             Debug.Log($"[Convergence] Released cloud #{record.CloudId} from point #{record.PointId}");
+            return true;
+        }
+
+        private void ReleaseHeldCloud(HeldCloudRecord record)
+        {
+            TryReleaseHeldCloud(record.CloudId);
         }
 
         private void DissipateHeldCloud(HeldCloudRecord record)

@@ -263,12 +263,18 @@ namespace Game.Weather.Cloud
                 UpdateCloudState(cloud, (float)deltaGameSeconds);
 
                 if (cloud.State != CloudState.Held &&
-                    (cloud.State == CloudState.Drifting || cloud.State == CloudState.InConvergence))
+                    (cloud.State == CloudState.Drifting
+                     || cloud.State == CloudState.InConvergence
+                     || cloud.State == CloudState.EvolvingToRain
+                     || cloud.State == CloudState.RainBand))
                 {
                     MoveCloud(cloud, deltaHours);
                 }
 
-                if (cloud.IsReleasedFromConvergence && IsOutsideMapBounds(cloud.Position))
+                if ((cloud.IsReleasedFromConvergence
+                     || cloud.IsEvolvingToRain
+                     || cloud.IsRainBand)
+                    && IsOutsideMapBounds(cloud.Position))
                 {
                     DestroyCloud(cloud, i);
                     continue;
@@ -297,6 +303,13 @@ namespace Game.Weather.Cloud
         private void MoveCloud(Cloud cloud, float deltaHours)
         {
             float stepDistance = _cloudSpeed * deltaHours;
+
+            // Evolving / rain bands keep drifting east and ignore Convergence attraction.
+            if (cloud.IsRainBand || cloud.IsEvolvingToRain)
+            {
+                cloud.Position += EastDriftDirection * stepDistance;
+                return;
+            }
 
             if (cloud.IsReleasedFromConvergence)
             {
@@ -422,14 +435,26 @@ namespace Game.Weather.Cloud
             return false;
         }
 
-        public bool ReleaseCloudFromConvergence(int cloudId)
+        public void ReleaseCloudFromConvergence(int cloudId)
+        {
+            if (!TryGetCloud(cloudId, out Cloud cloud) || !cloud.IsManagedByConvergence)
+                return;
+
+            cloud.IsManagedByConvergence = false;
+            cloud.HeldConvergencePointId = -1;
+            cloud.IsReleasedFromConvergence = true;
+            cloud.HasHoldTarget = false;
+            cloud.State = CloudState.Drifting;
+        }
+
+        public bool TryReleaseHeldCloudFromConvergence(int cloudId)
         {
             if (!TryGetCloud(cloudId, out Cloud cloud) || !cloud.IsManagedByConvergence)
                 return false;
 
             cloud.IsManagedByConvergence = false;
             cloud.HeldConvergencePointId = -1;
-            cloud.IsReleasedFromConvergence = true;
+            cloud.IsReleasedFromConvergence = false;
             cloud.HasHoldTarget = false;
             cloud.State = CloudState.Drifting;
             return true;
@@ -473,6 +498,12 @@ namespace Game.Weather.Cloud
         {
             if (TryGetCloud(cloudId, out Cloud cloud))
                 RemoveCloud(cloud);
+        }
+
+        public void RequestEvolveToRain(int cloudId)
+        {
+            if (TryGetCloud(cloudId, out Cloud cloud))
+                cloud.ShouldEvolveToRain = true;
         }
 
         public float ConvergenceAttractionRadius => _convergenceAttractionRadius;

@@ -9,7 +9,9 @@ namespace Game.Weather.Cloud
         Drifting,
         InConvergence,
         Held,
-        Absorbed
+        Absorbed,
+        EvolvingToRain,
+        RainBand
     }
     
     [Serializable]
@@ -37,6 +39,14 @@ namespace Game.Weather.Cloud
         public float ConvergenceIntensity;
         public bool IsReleasedFromConvergence;
 
+        /// <summary>
+        /// When true, this cluster cloud will evolve into a rain band (logic hook for future phases).
+        /// </summary>
+        public bool ShouldEvolveToRain;
+
+        public bool IsEvolvingToRain;
+        public bool IsRainBand;
+
         // Target offset around the convergence point so clouds don't pile on the center
         public bool HasHoldTarget;
         public Vector2 HoldTargetOffset;
@@ -46,7 +56,7 @@ namespace Game.Weather.Cloud
 
         public bool IsExpired(double nowGameSeconds)
         {
-            if (IsManagedByConvergence || IsReleasedFromConvergence)
+            if (IsManagedByConvergence || IsReleasedFromConvergence || IsEvolvingToRain || IsRainBand)
                 return false;
 
             return nowGameSeconds >= ExpireGameSeconds;
