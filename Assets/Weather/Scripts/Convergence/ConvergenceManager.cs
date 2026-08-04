@@ -323,8 +323,8 @@ namespace Game.Weather.Convergence
 
         private void SpawnPointAtChunkCenter()
         {
-            Vector2 pos = GetSpawnPosition();
-            _points.Add(CreatePoint(pos));
+            //Vector2 pos = GetSpawnPosition();
+            //_points.Add(CreatePoint(pos));
         }
 
         private Vector2 GetSpawnPosition()

@@ -39,9 +39,6 @@ namespace Game.Weather.Cloud
         public float ConvergenceIntensity;
         public bool IsReleasedFromConvergence;
 
-        /// <summary>
-        /// When true, this cluster cloud will evolve into a rain band (logic hook for future phases).
-        /// </summary>
         public bool ShouldEvolveToRain;
 
         public bool IsEvolvingToRain;

@@ -6,10 +6,6 @@ using CloudEntity = Game.Weather.Cloud.Cloud;
 
 namespace Game.Weather.Rain
 {
-    /// <summary>
-    /// Handles cloud evolution separate from lake spawn logic.
-    /// Phase 1: visual crossfade from cluster cloud VFX into the rain band asset.
-    /// </summary>
     [DefaultExecutionOrder(25)]
     public class CloudEvolutionManager : MonoBehaviour
     {
@@ -21,10 +17,8 @@ namespace Game.Weather.Rain
         [SerializeField] private Transform _rainVisualParent;
 
         [Header("Cluster -> Rain (Test Hook)")]
-        [Tooltip("When enabled, every cluster cloud will evolve into rain after spawn completes.")]
         [SerializeField] private bool _testEvolveClusterToRain;
 
-        [Tooltip("Optional delay after the cluster finishes spawning before evolution starts.")]
         [SerializeField, Min(0f)] private float _evolutionDelayAfterSpawn = 2f;
 
         [SerializeField, Min(0.1f)] private float _transitionDurationSeconds = 6f;

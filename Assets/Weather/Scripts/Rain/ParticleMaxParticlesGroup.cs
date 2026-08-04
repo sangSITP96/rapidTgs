@@ -147,7 +147,6 @@ namespace Game.Weather.Rain
                 return;
             }
 
-            // Fade-out: keep the cap stable so existing particles are not culled abruptly.
             main.maxParticles = snapshot.BaselineMaxParticles;
         }
 
