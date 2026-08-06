@@ -40,6 +40,28 @@ public class MapChunkRuntime : MonoBehaviour
                IsLakeAtUV(localUV);
     }
 
+    public bool IsMountainAtUV(Vector2 localUV)
+    {
+        return Data != null && Data.IsMountainUV(localUV);
+    }
+
+    public bool IsMountainAtWorldPosition(Vector3 worldPosition)
+    {
+        return TryWorldToLocalUV(worldPosition, out Vector2 localUV) &&
+               IsMountainAtUV(localUV);
+    }
+
+    public bool IsForestAtUV(Vector2 localUV)
+    {
+        return Data != null && Data.IsForestUV(localUV);
+    }
+
+    public bool IsForestAtWorldPosition(Vector3 worldPosition)
+    {
+        return TryWorldToLocalUV(worldPosition, out Vector2 localUV) &&
+               IsForestAtUV(localUV);
+    }
+
     public bool TryWorldToLocalUV(Vector3 worldPosition, out Vector2 localUV)
     {
         localUV = default;

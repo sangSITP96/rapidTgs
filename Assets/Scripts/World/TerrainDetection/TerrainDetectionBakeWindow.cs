@@ -6,7 +6,11 @@ using System.Text;
 using UnityEditor;
 using UnityEngine;
 
-public class LakeDetectionBakeWindow : EditorWindow
+/// <summary>
+/// Multi-type terrain detection bake (Lake / Mountain / Forest).
+/// Priority when claiming pixels: Lake &gt; Mountain &gt; Forest.
+/// </summary>
+public class TerrainDetectionBakeWindow : EditorWindow
 {
     private enum BakeSourceMode
     {
@@ -14,13 +18,13 @@ public class LakeDetectionBakeWindow : EditorWindow
         VisualTileFolder
     }
 
-    [SerializeField] private Texture2D _referenceLake;
-    [SerializeField] private Color _goldenMarkerColor = new Color(1f, 0.843f, 0f, 1f);
-    [SerializeField] private int _goldenTolerance = 20;
-    [SerializeField] private int _sampleRadius = 15;
-    [SerializeField] private float _colorDistanceThreshold = 28f;
+    [SerializeField] private TerrainDetectionConfig _lakeConfig;
+    [SerializeField] private TerrainDetectionConfig _mountainConfig;
+    [SerializeField] private TerrainDetectionConfig _forestConfig;
 
-    [SerializeField] private LakeColorPalette _palette;
+    [SerializeField] private bool _bakeLake = true;
+    [SerializeField] private bool _bakeMountain = true;
+    [SerializeField] private bool _bakeForest = true;
 
     [SerializeField] private BakeSourceMode _sourceMode = BakeSourceMode.MapChunkDataAssets;
     [SerializeField] private DefaultAsset _mapChunkDataFolder;
@@ -29,118 +33,97 @@ public class LakeDetectionBakeWindow : EditorWindow
     [SerializeField] private int _columns = 3;
     [SerializeField] private int _rows = 4;
 
-    [SerializeField] private int _minLakePixels = 64;
-    [SerializeField] private int _bigLakePixelThreshold = 400;
-    [SerializeField] private bool _connectDiagonals;
     [SerializeField] private bool _skipLockedChunks = true;
     [SerializeField] private bool _forceRebake;
-    [SerializeField] private bool _preserveLockedLakesOnVisualChange = true;
+    [SerializeField] private bool _preserveLockedOnVisualChange = true;
     [SerializeField] private bool _exportPreviewMasks;
     [SerializeField] private DefaultAsset _previewMaskFolder;
     [SerializeField] private bool _clearLegacyGrayscaleMasks = true;
 
     private Vector2 _scroll;
     private string _lastLog = string.Empty;
-    private Texture2D _palettePreview;
 
-    [MenuItem("Tools/Map/Lake Detection & Collider Bake")]
+    [MenuItem("Tools/Map/Terrain Detection Bake")]
     public static void ShowWindow()
     {
-        var window = GetWindow<LakeDetectionBakeWindow>("Lake Bake Tool");
-        window.minSize = new Vector2(420, 560);
+        var window = GetWindow<TerrainDetectionBakeWindow>("Terrain Bake");
+        window.minSize = new Vector2(440, 620);
     }
 
-    private void OnDisable()
+    [MenuItem("Tools/Map/Lake Detection & Collider Bake")]
+    public static void ShowLegacyLakeWindow()
     {
-        DestroyPreview(_palettePreview);
-        _palettePreview = null;
+        ShowWindow();
     }
 
     private void OnGUI()
     {
         _scroll = EditorGUILayout.BeginScrollView(_scroll);
 
-        DrawReferenceSection();
-
-        EditorGUILayout.Space(8);
-
-        DrawPaletteSection();
-
+        DrawConfigSection();
         EditorGUILayout.Space(8);
         DrawSourceSection();
-
         EditorGUILayout.Space(8);
-
-        DrawDetectionSection();
-
+        DrawBakeOptions();
         EditorGUILayout.Space(8);
         DrawActions();
-
         EditorGUILayout.Space(8);
         DrawLog();
 
         EditorGUILayout.EndScrollView();
     }
 
-    private void DrawReferenceSection()
+    private void DrawConfigSection()
     {
-        EditorGUILayout.LabelField("1. Reference Lake / Golden Pixel", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("1. Terrain Detection Configs", EditorStyles.boldLabel);
+        EditorGUILayout.HelpBox(
+            "Priority (each pixel claimed once): Lake > Mountain > Forest.\n" +
+            "Create assets via Create > World > Terrain Detection Config.",
+            MessageType.Info);
 
-        _referenceLake = (Texture2D)EditorGUILayout.ObjectField(
-            "Reference Lake",
-            _referenceLake,
-            typeof(Texture2D),
-            false);
-
-        _goldenMarkerColor = EditorGUILayout.ColorField("Golden Marker", _goldenMarkerColor);
-        _goldenTolerance = EditorGUILayout.IntSlider("Golden Tolerance", _goldenTolerance, 0, 60);
-        _sampleRadius = EditorGUILayout.IntSlider("SAmple Radius (px)", _sampleRadius, 1, 64);
-        _colorDistanceThreshold = EditorGUILayout.Slider("Match Threshold", _colorDistanceThreshold, 1f, 80f);
-
-        using (new EditorGUI.DisabledScope(_referenceLake == null))
-        {
-            if (GUILayout.Button("Sample Lake Color Palette", GUILayout.Height(28)))
-                SamplePalette();
-        }
+        DrawConfigRow("Lake", ref _lakeConfig, ref _bakeLake, TerrainFeatureType.Lake);
+        DrawConfigRow("Mountain", ref _mountainConfig, ref _bakeMountain, TerrainFeatureType.Mountain);
+        DrawConfigRow("Forest", ref _forestConfig, ref _bakeForest, TerrainFeatureType.Forest);
     }
 
-    private void DrawPaletteSection()
+    private void DrawConfigRow(
+        string label,
+        ref TerrainDetectionConfig config,
+        ref bool enabled,
+        TerrainFeatureType expectedType)
     {
-        EditorGUILayout.LabelField("Lake Color Palette", EditorStyles.boldLabel);
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-        if (_palette == null || !_palette.HasSamples)
+        EditorGUILayout.BeginHorizontal();
+        enabled = EditorGUILayout.ToggleLeft(label, enabled, EditorStyles.boldLabel, GUILayout.Width(100));
+        config = (TerrainDetectionConfig)EditorGUILayout.ObjectField(
+            config,
+            typeof(TerrainDetectionConfig),
+            false);
+        EditorGUILayout.EndHorizontal();
+
+        if (config != null)
         {
-            EditorGUILayout.HelpBox("No palette yet. Sample from reference lake first.", MessageType.Warning);
-            return;
+            if (config.FeatureType != expectedType)
+            {
+                EditorGUILayout.HelpBox(
+                    $"Config FeatureType is {config.FeatureType}, expected {expectedType}.",
+                    MessageType.Warning);
+            }
+
+            EditorGUILayout.LabelField(
+                config.HasPalette
+                    ? $"Palette samples: {config.Palette.Samples.Length}, minPixels={config.MinRegionPixels}, threshold={config.ColorDistanceThreshold}"
+                    : "No palette yet — sample from Reference Texture.");
+
+            using (new EditorGUI.DisabledScope(config.ReferenceTexture == null))
+            {
+                if (GUILayout.Button($"Sample {label} Palette From Reference"))
+                    SampleConfigPalette(config);
+            }
         }
 
-        EditorGUILayout.LabelField($"Samples: {_palette.Samples.Length}");
-
-        if (_palettePreview != null)
-        {
-            Rect r = GUILayoutUtility.GetRect(256, 48, GUILayout.ExpandWidth(true));
-            EditorGUI.DrawPreviewTexture(r, _palettePreview, null, ScaleMode.StretchToFill);
-        }
-
-        int show = Mathf.Min(8, _palette.Samples.Length);
-
-        for (int i = 0; i < show; i++)
-        {
-            var s = _palette.Samples[i];
-
-            Rect swatch = EditorGUILayout.GetControlRect(false, 18);
-
-            EditorGUI.DrawRect(
-                new Rect(swatch.x, swatch.y, 18, 18),
-                s.Color);
-
-            EditorGUI.LabelField(
-                new Rect(swatch.x + 24, swatch.y, swatch.width - 24, 18),
-                $"RGB({s.Color.r},{s.Color.g},{s.Color.b}) x{s.Color}");
-        }
-
-        if (_palette.Samples.Length > show)
-            EditorGUILayout.LabelField($"... and {_palette.Samples.Length - show} more");
+        EditorGUILayout.EndVertical();
     }
 
     private void DrawSourceSection()
@@ -156,8 +139,6 @@ public class LakeDetectionBakeWindow : EditorWindow
                 _mapChunkDataFolder,
                 typeof(DefaultAsset),
                 false);
-
-            EditorGUILayout.HelpBox("Scans Visual on each MapChunkData asset", MessageType.None);
         }
         else
         {
@@ -170,33 +151,33 @@ public class LakeDetectionBakeWindow : EditorWindow
             _outputDataFolder = (DefaultAsset)EditorGUILayout.ObjectField(
                 "Output MapChunkData Folder",
                 _outputDataFolder,
-                typeof(DefaultAsset), false);
+                typeof(DefaultAsset),
+                false);
 
             _columns = EditorGUILayout.IntField("Columns", _columns);
             _rows = EditorGUILayout.IntField("Rows", _rows);
         }
     }
 
-    private void DrawDetectionSection()
+    private void DrawBakeOptions()
     {
-        EditorGUILayout.LabelField("3. Detection & Bake Settings", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("3. Bake Options", EditorStyles.boldLabel);
 
-        _minLakePixels = EditorGUILayout.IntField("Min Lake Pixels", _minLakePixels);
-        _bigLakePixelThreshold = EditorGUILayout.IntField("Big Lake Threshold", _bigLakePixelThreshold);
-        _connectDiagonals = EditorGUILayout.Toggle("8-Connected Regions", _connectDiagonals);
         _skipLockedChunks = EditorGUILayout.Toggle("Skip Locked Chunks", _skipLockedChunks);
         _forceRebake = EditorGUILayout.Toggle("Force Rebake Locked", _forceRebake);
-        _preserveLockedLakesOnVisualChange = EditorGUILayout.Toggle(
-            "Preserve Locked Lakes On Visual Change",
-            _preserveLockedLakesOnVisualChange);
+        _preserveLockedOnVisualChange = EditorGUILayout.Toggle(
+            "Preserve Locked On Visual Change",
+            _preserveLockedOnVisualChange);
 
         EditorGUILayout.HelpBox(
-            "When enabled, changing a chunk Visual updates its texture reference but keeps existing locked lake data. " +
-            "This prevents armies, units, props, or VFX with lake-like colors from becoming lakes. " +
+            "When enabled, changing a chunk Visual updates its texture reference but keeps existing locked feature data. " +
             "Force Rebake Locked always overrides this option.",
             MessageType.Info);
 
-        _clearLegacyGrayscaleMasks = EditorGUILayout.Toggle("Clear Legacy Small/BigLake Masks", _clearLegacyGrayscaleMasks);
+        _clearLegacyGrayscaleMasks = EditorGUILayout.Toggle(
+            "Clear Legacy Small/BigLake Masks",
+            _clearLegacyGrayscaleMasks);
+
         _exportPreviewMasks = EditorGUILayout.Toggle("Export Preview Mask PNGs", _exportPreviewMasks);
 
         using (new EditorGUI.DisabledScope(!_exportPreviewMasks))
@@ -213,42 +194,48 @@ public class LakeDetectionBakeWindow : EditorWindow
     {
         EditorGUILayout.LabelField("4. Actions", EditorStyles.boldLabel);
 
-        using (new EditorGUI.DisabledScope(_palette == null || !_palette.HasSamples))
+        bool canBake =
+            (_bakeLake && HasReadyConfig(_lakeConfig)) ||
+            (_bakeMountain && HasReadyConfig(_mountainConfig)) ||
+            (_bakeForest && HasReadyConfig(_forestConfig));
+
+        using (new EditorGUI.DisabledScope(!canBake))
         {
             if (GUILayout.Button("Bake All Chunks", GUILayout.Height(34)))
                 BakeAll();
         }
 
-        if (GUILayout.Button("Unlock All Chunks In Folder"))
-            UnlockAllInFolder();
+        if (GUILayout.Button("Create Default Config Assets"))
+            CreateDefaultConfigs();
+
+        if (GUILayout.Button("Unlock Selected Types In Folder"))
+            UnlockSelectedInFolder();
     }
 
     private void DrawLog()
     {
         EditorGUILayout.LabelField("Log", EditorStyles.boldLabel);
-        EditorGUILayout.TextArea(_lastLog, GUILayout.MinHeight(120));
+        EditorGUILayout.TextArea(_lastLog, GUILayout.MinHeight(140));
     }
 
-    private void SamplePalette()
+    private static bool HasReadyConfig(TerrainDetectionConfig config)
+    {
+        return config != null && config.HasPalette;
+    }
+
+    private void SampleConfigPalette(TerrainDetectionConfig config)
     {
         try
         {
-            _referenceLake = EnsureTextureReadyForPixelExactRead(_referenceLake);
-            Color32 golden = (Color32)_goldenMarkerColor;
-
-            _palette = LakeColorDetection.SamplePaletteFromReference(
-                _referenceLake,
-                golden,
-                _goldenTolerance,
-                _sampleRadius,
-                _colorDistanceThreshold);
-
-            RebuildPalettePreview();
+            config.ReferenceTexture = EnsureTextureReadyForPixelExactRead(config.ReferenceTexture);
+            TerrainColorDetection.SamplePaletteIntoConfig(config);
+            EditorUtility.SetDirty(config);
+            AssetDatabase.SaveAssets();
 
             _lastLog =
-                $"Sampled {_palette.Samples.Length} lake colors from '{_referenceLake.name}'" +
-                $"(golden=RGB{golden.r}, {golden.g}, {golden.b}), radius = {_sampleRadius}, " +
-                $"threshold={_colorDistanceThreshold}).";
+                $"Sampled {config.Palette.Samples.Length} colors for {config.FeatureType} " +
+                $"from '{config.ReferenceTexture.name}' " +
+                $"(threshold={config.ColorDistanceThreshold}, radius={config.SampleRadius}).";
         }
         catch (Exception ex)
         {
@@ -257,46 +244,10 @@ public class LakeDetectionBakeWindow : EditorWindow
         }
     }
 
-    private void RebuildPalettePreview()
-    {
-        DestroyPreview(_palettePreview);
-        _palettePreview = null;
-
-        if (_palette == null || !_palette.HasSamples)
-            return;
-
-        var n = Mathf.Min(32, _palette.Samples.Length);
-
-        _palettePreview = new Texture2D(n, 1, TextureFormat.RGBA32, false);
-
-        var cols = new Color32[n];
-
-        for (int i = 0; i < n; i++)
-            cols[i] = _palette.Samples[i].Color;
-
-        _palettePreview.SetPixels32(cols);
-        _palettePreview.Apply(false, false);
-        _palettePreview.filterMode = FilterMode.Point;
-        _palettePreview.wrapMode = TextureWrapMode.Clamp;
-    }
-
     private void BakeAll()
     {
-        if (_palette == null || !_palette.HasSamples)
-        {
-            _lastLog = "Sample a palette first.";
-            return;
-        }
-
         try
         {
-            var settings = new LakeColorDetection.DetectionSettings
-            {
-                MinLakePixels = Mathf.Max(1, _minLakePixels),
-                BigLakePixelThreshold = Mathf.Max(1, _bigLakePixelThreshold),
-                ConnectDiagonals = _connectDiagonals
-            };
-
             var targets = CollectTargets();
 
             if (targets.Count == 0)
@@ -305,19 +256,32 @@ public class LakeDetectionBakeWindow : EditorWindow
                 return;
             }
 
-            var log = new StringBuilder();
+            TerrainDetectionConfig lake = _bakeLake ? _lakeConfig : null;
+            TerrainDetectionConfig mountain = _bakeMountain ? _mountainConfig : null;
+            TerrainDetectionConfig forest = _bakeForest ? _forestConfig : null;
 
-            var baked = 0;
-            var skipped = 0;
-            var failed = 0;
-            var totalRegions = 0;
+            if (lake != null && !lake.HasPalette) lake = null;
+            if (mountain != null && !mountain.HasPalette) mountain = null;
+            if (forest != null && !forest.HasPalette) forest = null;
+
+            if (lake == null && mountain == null && forest == null)
+            {
+                _lastLog = "Enable at least one config with a sampled palette.";
+                return;
+            }
+
+            var log = new StringBuilder();
+            int baked = 0;
+            int skipped = 0;
+            int failed = 0;
+            int totalRegions = 0;
 
             for (int i = 0; i < targets.Count; i++)
             {
-                var target = targets[i];
+                BakeTarget target = targets[i];
 
                 EditorUtility.DisplayProgressBar(
-                    "Lake Detection Bake",
+                    "Terrain Detection Bake",
                     $"{target.Label} ({i + 1}/{targets.Count})",
                     (i + 1f) / targets.Count);
 
@@ -334,22 +298,23 @@ public class LakeDetectionBakeWindow : EditorWindow
 
                     MapChunkData data = target.Data;
                     bool visualChanged = data != null && data.Visual != visual;
-                    bool lakeDataLocked =
+                    bool anyLocked =
                         data != null &&
-                        data.BakedLakes != null &&
-                        data.BakedLakes.IsLocked;
+                        ((lake != null && data.BakedLakes != null && data.BakedLakes.IsLocked) ||
+                         (mountain != null && data.BakedMountains != null && data.BakedMountains.IsLocked) ||
+                         (forest != null && data.BakedForests != null && data.BakedForests.IsLocked));
 
                     visual = EnsureTextureReadyForPixelExactRead(visual);
 
-                    if (lakeDataLocked && !_forceRebake)
+                    if (anyLocked && !_forceRebake)
                     {
-                        if (visualChanged && _preserveLockedLakesOnVisualChange)
+                        if (visualChanged && _preserveLockedOnVisualChange)
                         {
                             data.Visual = visual;
                             EditorUtility.SetDirty(data);
                             skipped++;
                             log.AppendLine(
-                                $"KEEP locked lakes {target.Label}: Visual updated without rebaking lake data");
+                                $"KEEP locked features {target.Label}: Visual updated without rebaking");
                             continue;
                         }
 
@@ -361,17 +326,40 @@ public class LakeDetectionBakeWindow : EditorWindow
                         }
                     }
 
-                    var result = LakeColorDetection.DetectAndBake(
-                        visual,
-                        _palette,
-                        settings);
+                    // Always run priority chain so claiming stays consistent.
+                    // Types without config produce empty unlocked stubs that we ignore when writing.
+                    TerrainColorDetection.MultiDetectionResult result =
+                        TerrainColorDetection.DetectAndBakeAll(
+                            visual,
+                            lake,
+                            mountain,
+                            forest,
+                            data != null ? data.BakedLakes : null,
+                            data != null ? data.BakedMountains : null,
+                            data != null ? data.BakedForests : null);
 
                     if (data == null)
                         data = CreateOrLoadChunkData(target.OutputAssetPath, target.Coord);
 
-                    // Always update the asset reference when a bake is performed.
                     data.Visual = visual;
-                    data.BakedLakes = result.Data;
+
+                    if (lake != null)
+                    {
+                        data.BakedLakes = result.Lake.Data;
+                        totalRegions += result.Lake.AcceptedRegionCount;
+                    }
+
+                    if (mountain != null)
+                    {
+                        data.BakedMountains = result.Mountain.Data;
+                        totalRegions += result.Mountain.AcceptedRegionCount;
+                    }
+
+                    if (forest != null)
+                    {
+                        data.BakedForests = result.Forest.Data;
+                        totalRegions += result.Forest.AcceptedRegionCount;
+                    }
 
                     if (_clearLegacyGrayscaleMasks)
                     {
@@ -383,15 +371,26 @@ public class LakeDetectionBakeWindow : EditorWindow
 
                     if (_exportPreviewMasks && _previewMaskFolder != null)
                     {
-                        ExportPreviewMask(result.Data, target.Label);
+                        if (lake != null)
+                            ExportPreviewMask(result.Lake.Data, target.Label, "Lake", Color.cyan);
+                        if (mountain != null)
+                            ExportPreviewMask(result.Mountain.Data, target.Label, "Mountain", new Color(0.55f, 0.35f, 0.2f));
+                        if (forest != null)
+                            ExportPreviewMask(result.Forest.Data, target.Label, "Forest", Color.green);
                     }
 
                     baked++;
-                    totalRegions += result.AcceptedRegionCount;
 
-                    log.AppendLine(
-                        $"OK {target.Label}: lakes={result.AcceptedRegionCount}, " +
-                        $"pixels={result.PotentialLakePixelCount}, rejectedSmall={result.RejectedSmallRegionCount}");
+                    var parts = new List<string>();
+                    if (lake != null)
+                        parts.Add($"lake={result.Lake.AcceptedRegionCount}");
+                    if (mountain != null)
+                        parts.Add($"mountain={result.Mountain.AcceptedRegionCount}");
+                    if (forest != null)
+                        parts.Add($"forest={result.Forest.AcceptedRegionCount}");
+                    parts.Add($"claimed={result.ClaimedPixelCount}");
+
+                    log.AppendLine($"OK {target.Label}: {string.Join(", ", parts)}");
                 }
                 catch (Exception ex)
                 {
@@ -415,7 +414,79 @@ public class LakeDetectionBakeWindow : EditorWindow
         }
     }
 
-    private void UnlockAllInFolder()
+    private void CreateDefaultConfigs()
+    {
+        const string folder = "Assets/Scripts/World/TerrainDetection/Configs";
+
+        if (!AssetDatabase.IsValidFolder("Assets/Scripts/World/TerrainDetection"))
+            AssetDatabase.CreateFolder("Assets/Scripts/World", "TerrainDetection");
+
+        if (!AssetDatabase.IsValidFolder(folder))
+            AssetDatabase.CreateFolder("Assets/Scripts/World/TerrainDetection", "Configs");
+
+        _lakeConfig = CreateConfigAsset(
+            folder,
+            "LakeDetectionConfig",
+            TerrainFeatureType.Lake,
+            minPixels: 64,
+            threshold: 28f);
+
+        _mountainConfig = CreateConfigAsset(
+            folder,
+            "MountainDetectionConfig",
+            TerrainFeatureType.Mountain,
+            minPixels: 48,
+            threshold: 26f);
+
+        _forestConfig = CreateConfigAsset(
+            folder,
+            "ForestDetectionConfig",
+            TerrainFeatureType.Forest,
+            minPixels: 48,
+            threshold: 26f);
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+
+        _lastLog =
+            $"Created/loaded default configs under {folder}.\n" +
+            "Assign Reference Texture on each config, then Sample Palette.";
+    }
+
+    private static TerrainDetectionConfig CreateConfigAsset(
+        string folder,
+        string assetName,
+        TerrainFeatureType type,
+        int minPixels,
+        float threshold)
+    {
+        string path = $"{folder}/{assetName}.asset";
+        var existing = AssetDatabase.LoadAssetAtPath<TerrainDetectionConfig>(path);
+
+        if (existing != null)
+            return existing;
+
+        var config = ScriptableObject.CreateInstance<TerrainDetectionConfig>();
+        config.FeatureType = type;
+        config.GoldenMarkerColor = new Color(1f, 0.843f, 0f, 1f);
+        config.GoldenTolerance = 20;
+        config.SampleRadius = 15;
+        config.ColorDistanceThreshold = threshold;
+        config.MinRegionPixels = minPixels;
+        config.BigRegionPixelThreshold = Mathf.Max(minPixels, 400);
+        config.Palette = new TerrainColorPalette
+        {
+            GoldenMarkerColor = (Color32)config.GoldenMarkerColor,
+            GoldenMarkerTolerance = config.GoldenTolerance,
+            SampleRadius = config.SampleRadius,
+            ColorDistanceThreshold = threshold
+        };
+
+        AssetDatabase.CreateAsset(config, path);
+        return config;
+    }
+
+    private void UnlockSelectedInFolder()
     {
         string folder = null;
 
@@ -431,26 +502,45 @@ public class LakeDetectionBakeWindow : EditorWindow
         }
 
         string[] guids = AssetDatabase.FindAssets("t:MapChunkData", new[] { folder });
-
-        var unlocked = 0;
+        int unlocked = 0;
 
         foreach (string guid in guids)
         {
             string path = AssetDatabase.GUIDToAssetPath(guid);
             var data = AssetDatabase.LoadAssetAtPath<MapChunkData>(path);
 
-            if (data == null || data.BakedLakes == null)
+            if (data == null)
                 continue;
 
-            data.BakedLakes.Clear();
+            bool dirty = false;
+
+            if (_bakeLake && data.BakedLakes != null)
+            {
+                data.BakedLakes.Clear();
+                dirty = true;
+            }
+
+            if (_bakeMountain && data.BakedMountains != null)
+            {
+                data.BakedMountains.Clear();
+                dirty = true;
+            }
+
+            if (_bakeForest && data.BakedForests != null)
+            {
+                data.BakedForests.Clear();
+                dirty = true;
+            }
+
+            if (!dirty)
+                continue;
 
             EditorUtility.SetDirty(data);
             unlocked++;
         }
 
         AssetDatabase.SaveAssets();
-
-        _lastLog = $"Unlocked {unlocked} MapChunkData assets under {folder}";
+        _lastLog = $"Unlocked selected types on {unlocked} MapChunkData assets under {folder}";
     }
 
     private List<BakeTarget> CollectTargets()
@@ -516,7 +606,6 @@ public class LakeDetectionBakeWindow : EditorWindow
                         : AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
 
                     string assetPath = $"{dataOutPath}/MapChunkData_y{y}_x{x}.asset";
-
                     var data = AssetDatabase.LoadAssetAtPath<MapChunkData>(assetPath);
 
                     list.Add(new BakeTarget
@@ -543,51 +632,51 @@ public class LakeDetectionBakeWindow : EditorWindow
 
         data = ScriptableObject.CreateInstance<MapChunkData>();
         AssetDatabase.CreateAsset(data, assetPath);
-
         return data;
     }
 
-    private void ExportPreviewMask(BakedLakeChunkData baked, string label)
+    private void ExportPreviewMask(
+        BakedLakeChunkData baked,
+        string label,
+        string typeName,
+        Color color)
     {
         string folder = AssetDatabase.GetAssetPath(_previewMaskFolder);
 
-        if (!AssetDatabase.IsValidFolder(folder))
+        if (!AssetDatabase.IsValidFolder(folder) || baked == null || !baked.HasMask)
             return;
 
-        Texture2D preview = LakeColorDetection.BuildPreviewMask(
+        Texture2D preview = TerrainColorDetection.BuildPreviewMask(
             baked,
-            new Color(1f, 1f, 1f, 1f),
-            new Color(0f, 0f, 0f, 1f));
+            color,
+            Color.black);
 
         if (preview == null)
             return;
 
         string safe = label.Replace('/', '_').Replace('\\', '_');
-
         string full = Path.Combine(
             Application.dataPath,
             folder.Substring("Assets/".Length),
-            $"LakePreview_{safe}.png"
-            );
+            $"{typeName}Preview_{safe}.png");
 
         Directory.CreateDirectory(Path.GetDirectoryName(full) ?? folder);
         File.WriteAllBytes(full, preview.EncodeToPNG());
-
-        DestroyPreview(preview);
+        DestroyImmediate(preview);
     }
 
     private static string FindTileTexture(string folder, string tileName)
     {
         string[] guids = AssetDatabase.FindAssets(
             tileName + " t:Texture2D",
-            new[] { folder});
+            new[] { folder });
 
-        foreach (string guid in guids) 
+        foreach (string guid in guids)
         {
             string path = AssetDatabase.GUIDToAssetPath(guid);
             string file = Path.GetFileNameWithoutExtension(path);
 
-            if(string.Equals(file, tileName, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(file, tileName, StringComparison.OrdinalIgnoreCase))
                 return path;
         }
 
@@ -605,7 +694,7 @@ public class LakeDetectionBakeWindow : EditorWindow
         int yi = name.IndexOf("_y", StringComparison.OrdinalIgnoreCase);
         int xi = name.IndexOf("_x", StringComparison.OrdinalIgnoreCase);
 
-        if(yi >= 0 && xi > yi)
+        if (yi >= 0 && xi > yi)
         {
             int.TryParse(name.Substring(yi + 2, xi - (yi + 2)), out y);
             int.TryParse(name.Substring(xi + 2), out x);
@@ -616,7 +705,7 @@ public class LakeDetectionBakeWindow : EditorWindow
 
     private static Texture2D EnsureTextureReadyForPixelExactRead(Texture2D tex)
     {
-        if(tex == null)
+        if (tex == null)
             throw new ArgumentNullException(nameof(tex));
 
         string path = AssetDatabase.GetAssetPath(tex);
@@ -637,7 +726,7 @@ public class LakeDetectionBakeWindow : EditorWindow
         if (importer == null)
             throw new InvalidOperationException($"Cannot get TextureImporter for '{path}'.");
 
-        var dirty =
+        bool dirty =
             !importer.isReadable ||
             importer.mipmapEnabled ||
             importer.textureCompression != TextureImporterCompression.Uncompressed ||
@@ -658,18 +747,10 @@ public class LakeDetectionBakeWindow : EditorWindow
         if (tex == null || !tex.isReadable)
         {
             throw new InvalidOperationException(
-                $"Failed to load readable uncmpressed texture: {path}");
+                $"Failed to load readable uncompressed texture: {path}");
         }
 
         return tex;
-    }
-
-    private static void DestroyPreview(Texture2D tex)
-    {
-        if (tex == null)
-            return;
-
-        DestroyImmediate(tex);
     }
 
     private sealed class BakeTarget

@@ -14,6 +14,10 @@ public struct LakeColorSample
     }
 }
 
+/// <summary>
+/// Lake-specific palette type kept for existing bake assets / tooling compatibility.
+/// Prefer <see cref="TerrainColorPalette"/> for new code.
+/// </summary>
 [Serializable]
 public class LakeColorPalette
 {
@@ -29,7 +33,7 @@ public class LakeColorPalette
 
     public bool Matches(Color32 pixel)
     {
-        if(!HasSamples)
+        if (!HasSamples)
             return false;
 
         float best = float.MaxValue;
@@ -47,17 +51,11 @@ public class LakeColorPalette
 
     public static float ColorDistance(Color32 a, Color32 b)
     {
-        float dr = a.r - b.r;
-        float dg = a.g - b.g;
-        float db = a.b - b.b;
-
-        return Mathf.Sqrt(dr * dr + dg * dg + db * db);
+        return TerrainColorPalette.ColorDistance(a, b);
     }
 
     public static bool IsNearGolden(Color32 pixel, Color32 golden, int tolerance)
     {
-        return Mathf.Abs(pixel.r - golden.r) <= tolerance &&
-                Mathf.Abs(pixel.g - golden.g) <= tolerance &&
-                Mathf.Abs(pixel.b - golden.b) <= tolerance;
+        return TerrainColorPalette.IsNearGolden(pixel, golden, tolerance);
     }
 }

@@ -34,8 +34,15 @@ public class BakedLakeRegion
     [HideInInspector]
     public List<BakedLakeRowSpan> RowSpans = new();
 
+    /// <summary>
+    /// Ordered outer contour in UV space (continuous walk for shoreline navigation).
+    /// Closed loop: last point connects back to first.
+    /// </summary>
+    [HideInInspector]
+    public List<Vector2> PerimeterOrderedUVs = new();
+
     public BakedLakeRegion()
-    { 
+    {
     }
 
     public BakedLakeRegion(
@@ -44,7 +51,8 @@ public class BakedLakeRegion
         RectInt pixelBounds,
         Vector2 centerUV,
         bool isBig,
-        List<BakedLakeRowSpan> rowSpans)
+        List<BakedLakeRowSpan> rowSpans,
+        List<Vector2> perimeterOrderedUVs = null)
     {
         Id = id;
         PixelCount = pixelCount;
@@ -52,6 +60,7 @@ public class BakedLakeRegion
         CenterUV = centerUV;
         IsBig = isBig;
         RowSpans = rowSpans ?? new List<BakedLakeRowSpan>();
+        PerimeterOrderedUVs = perimeterOrderedUVs ?? new List<Vector2>();
     }
 
     public bool ContainsPixel(int x, int y)
@@ -69,10 +78,15 @@ public class BakedLakeRegion
     }
 }
 
+/// <summary>
+/// Baked occupancy for one terrain feature type on a chunk.
+/// Class name kept for Lake asset serialization compatibility; also used for Forest/Mountain.
+/// </summary>
 [Serializable]
 public class BakedLakeChunkData
 {
     public bool IsLocked;
+    public TerrainFeatureType FeatureType = TerrainFeatureType.Lake;
     public int TextureWidth;
     public int TextureHeight;
     public long BakedUtcTicks;
@@ -87,10 +101,10 @@ public class BakedLakeChunkData
 
     public bool IsBlockedPixel(int x, int y)
     {
-        if(!HasMask)
+        if (!HasMask)
             return false;
 
-        if(x < 0 || y < 0 || x >= TextureWidth || y >= TextureHeight)
+        if (x < 0 || y < 0 || x >= TextureWidth || y >= TextureHeight)
             return false;
 
         for (int i = 0; i < Regions.Count; i++)
@@ -105,7 +119,7 @@ public class BakedLakeChunkData
 
     public bool IsBlockedUV(Vector2 uv)
     {
-        if(!HasMask)
+        if (!HasMask)
             return false;
 
         int x = Mathf.Clamp(
@@ -114,9 +128,9 @@ public class BakedLakeChunkData
             TextureWidth - 1);
 
         int y = Mathf.Clamp(
-           Mathf.FloorToInt(uv.y * TextureHeight),
-           0,
-           TextureHeight - 1);
+            Mathf.FloorToInt(uv.y * TextureHeight),
+            0,
+            TextureHeight - 1);
 
         return IsBlockedPixel(x, y);
     }

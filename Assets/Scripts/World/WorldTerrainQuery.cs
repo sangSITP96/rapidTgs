@@ -163,13 +163,25 @@ public class WorldTerrainQuery : MonoBehaviour
 
     public bool IsForest(Vector3 worldPos)
     {
-        if(!TryHit(worldPos, out var hit, out var chunk) || chunk.Data == null)
+        if (!TryHit(worldPos, out var hit, out var chunk) || chunk.Data == null)
             return false;
 
         Vector2 globalUV = GetSampleUV(chunk, hit.textureCoord);
 
+        if (chunk.Data.HasBakedForests)
+            return chunk.Data.IsForestUV(globalUV);
+
         float f = SampleGray(chunk.Data.Forest, globalUV, 0f);
         return f > forestThreshold;
+    }
+
+    public bool IsMountain(Vector3 worldPos)
+    {
+        if (!TryHit(worldPos, out var hit, out var chunk) || chunk.Data == null)
+            return false;
+
+        Vector2 globalUV = GetSampleUV(chunk, hit.textureCoord);
+        return chunk.Data.HasBakedMountains && chunk.Data.IsMountainUV(globalUV);
     }
 
     private bool TryHit(Vector3 worldPos, out RaycastHit hit, out MapChunkRuntime chunk)
