@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b78a1758a5483344785b974c69823a5c, type: 3}
+  m_Name: FogVisualLibrary
+  m_EditorClassIdentifier: 
+  MediumMinLakeSize: 25
+  LargeMinLakeSize: 45
+  VariantSets:
+  - Category: 0
+    Prefabs:
+    - {fileID: 1574864769417518366, guid: ab5a94d468428194d993879cf2bc9c1c, type: 3}
+    - {fileID: 3635627412073140146, guid: 2bf2a3c0d2a0f2241b545ef865f887c6, type: 3}
+    - {fileID: 3037348151353307671, guid: 8d6c781dd3823554597c9df5ae346a8e, type: 3}
+    MinScale: 1
+    MaxScale: 1.3
+  - Category: 1
+    Prefabs:
+    - {fileID: 4074232973747466553, guid: a13d244dfa58ee345a734105206674d9, type: 3}
+    - {fileID: 120246474843078114, guid: b0ad063839d1b1e4998fd20230b38b3a, type: 3}
+    - {fileID: 3677240604560898789, guid: 691e7089a76cf9543bd22b653d65f234, type: 3}
+    MinScale: 1.2
+    MaxScale: 1.8
+  - Category: 2
+    Prefabs:
+    - {fileID: 3673276131318559968, guid: 19a102d0bb1019544ab853222f7f582e, type: 3}
+    - {fileID: 2785381855720669529, guid: ceefb1442ff4a294ab9ae08f4663d5e4, type: 3}
+    - {fileID: 2935237164644499314, guid: 8256262e2f271474e9070296baec214a, type: 3}
+    MinScale: 1.6
+    MaxScale: 2.5

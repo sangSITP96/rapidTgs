@@ -9,14 +9,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b12837d4278e1db48a33795746bc2c1b, type: 3}
-  m_Name: ConvergenceConfig
+  m_Script: {fileID: 11500000, guid: 6fa329d9241b5f2498c6f8a643117b38, type: 3}
+  m_Name: CurrentSettings
   m_EditorClassIdentifier: 
-  MinPoints: 3
-  MaxPoints: 8
-  MinSeparation: 2
-  DriftSpeed: 0.5
-  DriftRerollHours: 4
-  MinLifeTimehours: 6
-  MaxLifeTimehours: 18
-  attractionStrength: 0.2
+  startingGold: 0
+  startingSilver: 0
+  defaultOperationSilverReward: 10
+  goldResetMode: 0
+  goldResetValue: 0
+  silverResetMode: 0
+  silverResetValue: 0

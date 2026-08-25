@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: StormMovementConfig
   m_EditorClassIdentifier: 
   BaseSpeed: 8
+  FormingSpeedMultiplier: 0.35
   WindWeight: 0.7
   ConvergenceWeight: 0.3
   DestroyIfOutsideBounds: 1
   MergeOverlapThreshold: 0.9
-  MaxMergedRadius: 0.5
+  MaxMergedRadius: 3
   EnableMerging: 1

@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ccb7343273b04a64bbb86810e594a63a, type: 3}
+  m_Name: CloudVisualLibrary
+  m_EditorClassIdentifier: 
+  MediumMinLakeSize: 25
+  LargeMinLakeSize: 45
+  ClusterMinLakeSize: 70
+  VariantSets:
+  - Category: 0
+    Prefabs:
+    - {fileID: 5920754425180962331, guid: ea6218bbcca55bd4b9c7897d41870381, type: 3}
+    - {fileID: 6613639725343224425, guid: e280a8957b9fe6f46861ca26109b3f88, type: 3}
+    - {fileID: 8751820425323997782, guid: b33a42d6f35999848a3a89e2e9977ec1, type: 3}
+    - {fileID: 3284968078434729613, guid: 6b25c0debc64a214a9fc87aee26c9288, type: 3}
+    - {fileID: 1483183940023748523, guid: ef856f5af42dec1449a9cc5fae28a80e, type: 3}
+    - {fileID: 7872399561035986438, guid: bb5fb949a1f95f24fb1fc2e61eb2157b, type: 3}
+    - {fileID: 4307001968216253283, guid: 8a78e02e12a6fdf46ba9dfb86a52022a, type: 3}
+    - {fileID: 7806506743482111453, guid: 63ce5f681f55921438345a20c30a2243, type: 3}
+    - {fileID: 6297896119800847165, guid: 9edb2d9e79aa9e94ca0021c19abfc625, type: 3}
+    MinSimulationRadius: 0.8
+    MaxSimulationRadius: 1.2
+  - Category: 1
+    Prefabs:
+    - {fileID: 7484856570052632009, guid: 0e52aab1e7753a5458ab93bb147ab7b9, type: 3}
+    - {fileID: 2274167736319833955, guid: 474ba2cc07ff406499423d20b153b13f, type: 3}
+    - {fileID: 962894334643402700, guid: 096d78364f6377a4bb0d79febf6fe0e6, type: 3}
+    - {fileID: 2452723096264820698, guid: a73c8a5ad4ec0814b91f5f6efc7cefa9, type: 3}
+    - {fileID: 850405330568756018, guid: 32a8f2491d24cd54f80a98dfe4165d4e, type: 3}
+    - {fileID: 424739122151392803, guid: 24e205dd65da00e409cd96cc880fd9cd, type: 3}
+    MinSimulationRadius: 1.2
+    MaxSimulationRadius: 2
+  - Category: 2
+    Prefabs:
+    - {fileID: 3530642525301910362, guid: fee64ceff35f02b4f915371bee488c55, type: 3}
+    - {fileID: 1760249127144467425, guid: 26c5b8b74951cab45aba26eef5b68036, type: 3}
+    - {fileID: 2977293253208054241, guid: 1e23af8e6df5a8341844c5a08b0d731c, type: 3}
+    - {fileID: 8335112660393523901, guid: 6ef7cbcec7126384ba0c6d865d04bc66, type: 3}
+    MinSimulationRadius: 2
+    MaxSimulationRadius: 3.5
+  - Category: 3
+    Prefabs:
+    - {fileID: 3088369808681393346, guid: f497e6449a9ecb34a91d7526fe7b6dfc, type: 3}
+    - {fileID: 9083542624904903578, guid: d76e81b66ca6a66499f7d1d94a3ad48d, type: 3}
+    - {fileID: 5044702714623323759, guid: 77302a59e37edab49b0b16431efd9a22, type: 3}
+    MinSimulationRadius: 3.5
+    MaxSimulationRadius: 5

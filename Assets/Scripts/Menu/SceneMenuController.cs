@@ -35,6 +35,6 @@ public class SceneMenuController : MonoBehaviour
 
     private void LoadGamePlayScene()
     {
-        SceneManager.LoadScene("RapidTgsPrototype");
+        SceneManager.LoadScene("RapidTgsPrototype_main");
     }
 }

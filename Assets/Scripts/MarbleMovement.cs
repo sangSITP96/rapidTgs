@@ -45,6 +45,9 @@ public class MarbleMovement : MonoBehaviour
     [Header("Panel Speed Config")] [SerializeField]
     private GameObject _panelGameObject;
 
+    [SerializeField]
+    private GameObject _moralePanelGameObject;
+
     [FormerlySerializedAs("_closePanelButton")] [SerializeField]
     private Button _onOffConfigPanelButton;
 
@@ -179,6 +182,7 @@ public class MarbleMovement : MonoBehaviour
         }
 
         _panelGameObject.SetActive(_isShowConfigPanel);
+        _moralePanelGameObject.SetActive(!_isShowConfigPanel);
     }
 
     private void HandleTap()
