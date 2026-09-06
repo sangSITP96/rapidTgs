@@ -28,8 +28,9 @@ public class MarbleMovement : MonoBehaviour
     [SerializeField] private Texture2D _forestMaskTexture;
     [SerializeField] private Texture2D _albedoTexture;
 
-    [Header("Forest Settings")] 
+    [Header("Biome Slowdown")]
     [SerializeField] private float _forestSlowdownFactor = 0.5f;
+    [SerializeField] private float _mountainSlowdownFactor = 0.6f;
     [SerializeField] private float _lakeMaskThreshold = 0.5f;
     [SerializeField] private float _forestMaskThreshold = 0.5f;
 
@@ -326,9 +327,9 @@ public class MarbleMovement : MonoBehaviour
             weatherMultiplier = _weatherManager.GetTotalWeatherMultiplier();
         }
         
-        // Apply forest slowdown at current position
-        float forestSlowdown = GetForestSlowdownFactor(current);
-        float finalSpeed = baseSpeed * speedFactor * weatherMultiplier * forestSlowdown;
+        // Apply biome slowdown at current position
+        float biomeSlowdown = GetBiomeSlowdownFactor(current);
+        float finalSpeed = baseSpeed * speedFactor * weatherMultiplier * biomeSlowdown;
         
 
         float stepDistance = finalSpeed * Time.deltaTime;
@@ -471,15 +472,21 @@ public class MarbleMovement : MonoBehaviour
         return forestValue > _forestMaskThreshold;
     }
     
-    private float GetForestSlowdownFactor(Vector3 worldPos)
+    private float GetBiomeSlowdownFactor(Vector3 worldPos)
     {
-        var isForest = _worldTerrainQuery!=null
-                        ?_worldTerrainQuery.IsForest(worldPos)
-                        :IsInForest(worldPos);
+        bool isForest = _worldTerrainQuery != null
+            ? _worldTerrainQuery.IsForest(worldPos)
+            : IsInForest(worldPos);
+
         if (isForest)
-        {
             return _forestSlowdownFactor;
-        }
+
+        bool isMountain = _worldTerrainQuery != null &&
+                          _worldTerrainQuery.IsMountain(worldPos);
+
+        if (isMountain)
+            return _mountainSlowdownFactor;
+
         return 1f;
     }
 

@@ -287,7 +287,8 @@ public class TerrainDetectionBakeWindow : EditorWindow
 
                 try
                 {
-                    Texture2D visual = target.Visual;
+                    MapChunkData data = target.Data;
+                    Texture2D visual = data != null && data.BiomeBaseMap != null ? data.BiomeBaseMap : target.Visual;
 
                     if (visual == null)
                     {
@@ -296,8 +297,7 @@ public class TerrainDetectionBakeWindow : EditorWindow
                         continue;
                     }
 
-                    MapChunkData data = target.Data;
-                    bool visualChanged = data != null && data.Visual != visual;
+                    bool visualChanged = data != null && data.BiomeBaseMap != null && data.BiomeBaseMap != visual;
                     bool anyLocked =
                         data != null &&
                         ((lake != null && data.BakedLakes != null && data.BakedLakes.IsLocked) ||
@@ -341,7 +341,8 @@ public class TerrainDetectionBakeWindow : EditorWindow
                     if (data == null)
                         data = CreateOrLoadChunkData(target.OutputAssetPath, target.Coord);
 
-                    data.Visual = visual;
+                    if(data.BiomeBaseMap == null)
+                        data.Visual = visual;
 
                     if (lake != null)
                     {

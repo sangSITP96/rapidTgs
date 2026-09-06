@@ -3,7 +3,12 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "World/Map Chunk Data")]
 public class MapChunkData : ScriptableObject
 {
+    [Header("Display")]
     public Texture2D Visual;
+
+    [Header("Biome Logic")] 
+    public Texture2D BiomeBaseMap;
+    
     public Texture2D Height;
     public Texture2D SmallLake;
     public Texture2D BigLake;
