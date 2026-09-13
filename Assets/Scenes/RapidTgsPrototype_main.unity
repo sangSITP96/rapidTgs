@@ -1121,7 +1121,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd2cc7ae4cdb7e448b40241d712a4fa2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _config: {fileID: 11400000, guid: 052f3f4d11e09bf4dad4ae282395e0aa, type: 2}
+  _config: {fileID: 11400000, guid: a7c3e91b4d2f48c0a1e5b6d708192a3c, type: 2}
 --- !u!4 &165181248
 Transform:
   m_ObjectHideFlags: 0
@@ -1527,6 +1527,11 @@ GameObject:
   - component: {fileID: 238296184}
   - component: {fileID: 238296183}
   - component: {fileID: 238296186}
+  - component: {fileID: 238296191}
+  - component: {fileID: 238296190}
+  - component: {fileID: 238296189}
+  - component: {fileID: 238296188}
+  - component: {fileID: 238296187}
   m_Layer: 7
   m_Name: Marble
   m_TagString: Untagged
@@ -1639,6 +1644,7 @@ MonoBehaviour:
   _marbleBoundaryPadding: 0.05
   _marble: {fileID: 238296182}
   _terrainGridSystem: {fileID: 1023926753}
+  _travelController: {fileID: 0}
   _neutralSpeedSlider: {fileID: 589474643}
   _upHillSSlowdownSlider: {fileID: 1381347473}
   _downHillBoostSlider: {fileID: 408593510}
@@ -1648,6 +1654,7 @@ MonoBehaviour:
   _forestMaskTexture: {fileID: 2800000, guid: 82e4fa1f9e5328641add8467a1f3a344, type: 3}
   _albedoTexture: {fileID: 0}
   _forestSlowdownFactor: 0.5
+  _mountainSlowdownFactor: 0.6
   _lakeMaskThreshold: 0.5
   _forestMaskThreshold: 0.5
   _normalSpeed: 2
@@ -1666,6 +1673,115 @@ MonoBehaviour:
   _groundLayerMask:
     serializedVersion: 2
     m_Bits: 64
+--- !u!114 &238296187
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 238296181}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01ada6865321ec44199042649b212dac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _travel: {fileID: 238296189}
+  _morale: {fileID: 1701793281}
+  _worldTime: {fileID: 165181247}
+  _destinationOffset: {x: 10, y: 0, z: 0}
+  _destinationMarker: {fileID: 0}
+  _beginTravelKey: 116
+  _makeCampKey: 99
+  _startRestKey: 114
+  _stopRestKey: 120
+  _resumeMarchKey: 109
+  _cancelTravelKey: 118
+  _overlayScale: 1
+  _baseFontSize: 18
+  _showOverlay: 1
+--- !u!114 &238296188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 238296181}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 044a64d0745207047a15d815397fa147, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _worldTime: {fileID: 165181247}
+  _travelController: {fileID: 238296189}
+  _moraleSystem: {fileID: 1701793281}
+  _settings: {fileID: 11400000, guid: b8d4f02c5e3a49d1b2f6c7e819203b4d, type: 2}
+  _weatherAdapter: {fileID: 238296190}
+--- !u!114 &238296189
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 238296181}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ebaa9aff072dd734884e10b5418cd2ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _settings: {fileID: 11400000, guid: b8d4f02c5e3a49d1b2f6c7e819203b4d, type: 2}
+  _worldTime: {fileID: 165181247}
+  _surfaceQuery: {fileID: 238296191}
+  _weatherAdapter: {fileID: 238296190}
+  _mover: {fileID: 238296182}
+  _state:
+    Status: 0
+    Origin: {x: 0, y: 0, z: 0}
+    Destination: {x: 0, y: 0, z: 0}
+    CurrentPosition: {x: 0, y: 0, z: 0}
+    RemainingDistance: 0
+    CurrentSpeed: 0
+    EffectiveMovementModifier: 1
+    CurrentSurfaceNeedsModifier: 1
+    WeatherMovementMultiplier: 1
+    WeatherNeedsMultiplier: 1
+    CurrentSurface: 0
+    IsPassable: 1
+    IsOnTrail: 0
+    CurrentDayPhase: 2
+    IsNight: 0
+    MarchElapsedGameSeconds: 0
+    RestElapsedGameSeconds: 0
+    CampElapsedGameSeconds: 0
+    HasDestination: 0
+--- !u!114 &238296190
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 238296181}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dab7e10d2e0b750428b899282f10761b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _weatherManager: {fileID: 1836677739}
+  _fallbackMovementMultiplier: 1
+  _fallbackNeedsMultiplier: 1
+--- !u!114 &238296191
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 238296181}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1301f2a2549d2014ab4a3261d5e921e5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _terrainQuery: {fileID: 1664899958}
+  _settings: {fileID: 11400000, guid: b8d4f02c5e3a49d1b2f6c7e819203b4d, type: 2}
 --- !u!1 &245897047
 GameObject:
   m_ObjectHideFlags: 0
@@ -2230,7 +2346,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.3}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 20, y: -20}
+  m_AnchoredPosition: {x: 20, y: -20.000732}
   m_SizeDelta: {x: 600, y: -20}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &434964825
@@ -2623,10 +2739,8 @@ MonoBehaviour:
   _preloadLeftRight: 2
   _useMarbleStartRow: 1
   _forcedRow: 0
-  _defaultData: {fileID: 11400000, guid: eecc93e4d89713b4cadadea2473a74ce, type: 2}
-  _predefined:
-  - coord: {x: 0, y: 0}
-    data: {fileID: 11400000, guid: ad417766a326b7d469ea63692b90d148, type: 2}
+  _defaultData: {fileID: 11400000, guid: 7a98e90c951d535499f811187a2ce601, type: 2}
+  _predefined: []
   _spawnMarbleOnStart: 1
   _marbleSpawnChunk: {x: 0, y: 0}
   _marbleSpawnEdgePadding: 0.5
@@ -4744,6 +4858,7 @@ GameObject:
   - component: {fileID: 1023926753}
   - component: {fileID: 1023926752}
   - component: {fileID: 1023926756}
+  - component: {fileID: 1023926757}
   m_Layer: 5
   m_Name: Terrain Grid System
   m_TagString: Untagged
@@ -4763,7 +4878,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 8.75, y: 6.25, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2036361784}
   m_Father: {fileID: 2060517412}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!64 &1023926752
@@ -4802,7 +4918,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxCellsSqrt: 100
   _isDirty: 0
-  mouseIsOver: 1
+  mouseIsOver: 0
   newInHierarchy: 0
   territoryThicknessSettingMigrated: 1
   _terrain: {fileID: 0}
@@ -4815,7 +4931,7 @@ MonoBehaviour:
   _terrainObjectsSearchGlobal: 0
   _terrainMeshPivot: {x: 0.5, y: 0.5}
   canvasTexture: {fileID: 0}
-  _transparentBackground: 0
+  _transparentBackground: 1
   _useStencilBuffer: 0
   _disableMeshGeneration: 0
   _useGeometryShaders: 0
@@ -4925,7 +5041,7 @@ MonoBehaviour:
   _cellBorderColor: {r: 0.48215556, g: 0.48549303, b: 0.5188679, a: 1}
   _cellCustomBorderThickness: 0
   _cellBorderThickness: 1
-  _cellFillPadding: 0
+  _cellFillPadding: 0.1
   _cellTileBackgroundMode: 1
   _cellTextureMode: 0
   _cellTileScale: {x: 1, y: 1}
@@ -4958,19 +5074,23 @@ MonoBehaviour:
   _territoriesHideNeutralCells: 0
   _territoriesInitialCellMethod: 0
   _territoriesInitialCellIndices: 
-  _numTerritories: 1
+  _numTerritories: 4
   _territoriesMaxIterations: 0
   _territoriesMaxRange: 100
-  _territoriesAsymmetry: 0
-  _territoriesOrganic: 0
+  _territoriesAsymmetry: 0.4
+  _territoriesOrganic: 0.8
   _showTerritories: 0
   _showTerritoriesInteriorBorders: 0
   _territoryInteriorBorderOnTop: 0
   _territoryInteriorBorderIncludeEnclaves: 1
   _colorizeTerritories: 0
-  _territoriesColorScheme: 0
-  _territoriesFillColors: []
-  _colorizedTerritoriesAlpha: 0.71
+  _territoriesColorScheme: 1
+  _territoriesFillColors:
+  - {r: 0, g: 0.39215687, b: 1, a: 1}
+  - {r: 0.54509807, g: 0.27058825, b: 0.07450981, a: 1}
+  - {r: 0, g: 0.39215687, b: 0, a: 1}
+  - {r: 0.5647059, g: 0.93333334, b: 0.5647059, a: 1}
+  _colorizedTerritoriesAlpha: 0.714
   _territoryHighlightColor: {r: 1, g: 0, b: 0, a: 0.7}
   _territoryHighlightColor2: {r: 0, g: 1, b: 0, a: 0.8}
   _territoryFrontierColor: {r: 0.3, g: 0.3, b: 0.3, a: 1}
@@ -4991,7 +5111,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1023926750}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -5056,6 +5176,28 @@ MonoBehaviour:
   recenterDistance: 1.5
   snapToCell: 1
   clearCellSurfacesOnMove: 1
+--- !u!114 &1023926757
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1023926750}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da290945b27c1674ab581b1db7f3ef17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _tgs: {fileID: 1023926753}
+  _numTerritories: 4
+  _territoriesOrganic: 0.8
+  _territoriesAsymmetry: 0.4
+  _seed: 1
+  _minLakes: 1
+  _minMountains: 1
+  _minForests: 1
+  _mapData: {fileID: 11400000, guid: 1f70c35e4faa46c449d158fd9c995441, type: 2}
+  _cellFillPadding: 0.1
 --- !u!1 &1026118484
 GameObject:
   m_ObjectHideFlags: 0
@@ -10539,6 +10681,37 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2031368700}
   m_CullTransparentMesh: 1
+--- !u!1 &2036361783
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2036361784}
+  m_Layer: 5
+  m_Name: Surfaces
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2036361784
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2036361783}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1023926751}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2044023811
 GameObject:
   m_ObjectHideFlags: 0

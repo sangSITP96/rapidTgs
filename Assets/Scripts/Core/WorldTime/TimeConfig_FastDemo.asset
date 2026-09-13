@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 798b8f8fffab58d49ae3aacd6b5b7084, type: 3}
-  m_Name: TimeConfig
+  m_Name: TimeConfig_FastDemo
   m_EditorClassIdentifier: 
-  GameSecondsPerRealSecond: 4
+  GameSecondsPerRealSecond: 600
   StartHour: 6
   StartMinute: 0
   StartSecond: 0

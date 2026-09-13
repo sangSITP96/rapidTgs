@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10a4f6b9f72022a44a40cbcc7a6ca0a6, type: 3}
+  m_Name: TravelSettings_FastDemo
+  m_EditorClassIdentifier: 
+  BaseMarchSpeedUnitsPerGameHour: 6
+  ArrivalDistanceThreshold: 0.15
+  GrasslandMovementModifier: 1
+  ForestMovementModifier: 0.7
+  MountainMovementModifier: 0.45
+  RoadTrailMovementModifier: 1.25
+  LakeMovementModifier: 0
+  GrasslandPassable: 1
+  ForestPassable: 1
+  MountainPassable: 1
+  RoadTrailPassable: 1
+  LakePassable: 0
+  EnableDirectTerrainNeedsPenalty: 0
+  GrasslandNeedsModifier: 1
+  ForestNeedsModifier: 1
+  MountainNeedsModifier: 1
+  RoadTrailNeedsModifier: 1
+  LakeNeedsModifier: 1
+  MarchSleepConsumptionPerHour: 15
+  MarchWaterConsumptionPerHour: 12
+  MarchFoodConsumptionPerHour: 10
+  RestSleepRestorePerHour: 25
+  RestWaterConsumptionPerHour: 3
+  RestFoodConsumptionPerHour: 3
+  IdleSleepConsumptionPerHour: 3
+  IdleWaterConsumptionPerHour: 3
+  IdleFoodConsumptionPerHour: 3
+  TrailMode: 0
+  TrailSampleHalfWidth: 0.35

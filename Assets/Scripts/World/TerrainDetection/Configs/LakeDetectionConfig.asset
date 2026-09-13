@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08f151dc984f6aa4d83df65b721e1786, type: 3}
+  m_Name: LakeDetectionConfig
+  m_EditorClassIdentifier: 
+  FeatureType: 0
+  ReferenceTexture: {fileID: 2800000, guid: c9d5c6ff9fbe3e742bd8c391376ca0e6, type: 3}
+  GoldenMarkerColor: {r: 1, g: 0.843, b: 0, a: 1}
+  GoldenTolerance: 20
+  SampleRadius: 15
+  ColorDistanceThreshold: 5
+  Palette:
+    GoldenMarkerColor:
+      serializedVersion: 2
+      rgba: 4278245375
+    GoldenMarkerTolerance: 20
+    SampleRadius: 15
+    ColorDistanceThreshold: 5
+    Samples:
+    - Color:
+        serializedVersion: 2
+        rgba: 4294927360
+      Count: 708
+  MinRegionPixels: 32
+  BigRegionPixelThreshold: 400
+  ConnectDiagonals: 0

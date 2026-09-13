@@ -184,6 +184,35 @@ public class WorldTerrainQuery : MonoBehaviour
         return chunk.Data.HasBakedMountains && chunk.Data.IsMountainUV(globalUV);
     }
 
+    /// <summary>
+    /// Gameplay-facing biome sample for travel systems.
+    /// Priority: Lake > Mountain > Forest > Grassland.
+    /// Does not include Road/Trail overlays (those belong to trail providers).
+    /// </summary>
+    public bool TryGetBiomeType(Vector3 worldPos, out BiomeType biome)
+    {
+        if (IsLake(worldPos))
+        {
+            biome = BiomeType.Lake;
+            return true;
+        }
+
+        if (IsMountain(worldPos))
+        {
+            biome = BiomeType.Mountain;
+            return true;
+        }
+
+        if (IsForest(worldPos))
+        {
+            biome = BiomeType.Forest;
+            return true;
+        }
+
+        biome = BiomeType.Grassland;
+        return true;
+    }
+
     private bool TryHit(Vector3 worldPos, out RaycastHit hit, out MapChunkRuntime chunk)
     {
         var ray = new Ray(worldPos + Vector3.up * 2f, Vector3.down);

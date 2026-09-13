@@ -1,3 +1,4 @@
+using Game.Travel;
 using Game.Utilities;
 using TGS;
 using UnityEngine;
@@ -13,6 +14,10 @@ public class MarbleMovement : MonoBehaviour
 
     [SerializeField] private Transform _marble;
     [SerializeField] private TerrainGridSystem _terrainGridSystem;
+
+    [Header("Phase 12 Travel")]
+    [Tooltip("If assigned, click-move and travel-march will not fight over the marble.")]
+    [SerializeField] private TroopTravelController _travelController;
 
     [Header("List Sliders")] [FormerlySerializedAs("_speedSlider")] [SerializeField]
     private Slider _neutralSpeedSlider;
@@ -110,6 +115,9 @@ public class MarbleMovement : MonoBehaviour
         _upHillAction = (x) => { _upHillText.text = x.ToString("0") + "%"; };
         _downHillAction = (x) => { _downHillText.text = x.ToString("0") + "%"; };
         //
+        if (_travelController == null)
+            _travelController = FindFirstObjectByType<TroopTravelController>();
+
         _camera = Camera.main;
         _onOffConfigPanelButton.onClick.RemoveAllListeners();
         _onOffConfigPanelButton.onClick.AddListener(() => { OnOffSpeedConfigPanel(); });
@@ -161,6 +169,31 @@ public class MarbleMovement : MonoBehaviour
         _previousHeight = GetHeightAtPosition(_marble.position);
     }
 
+    void OnEnable()
+    {
+        if (_travelController == null)
+            _travelController = FindFirstObjectByType<TroopTravelController>();
+
+        if (_travelController != null)
+            _travelController.MarchControlStarted += StopMoving;
+    }
+
+    void OnDisable()
+    {
+        if (_travelController != null)
+            _travelController.MarchControlStarted -= StopMoving;
+    }
+
+    /// <summary>Stops click-to-move so TroopTravelController can own the marble.</summary>
+    public void StopMoving()
+    {
+        _moving = false;
+        _currentSlopeState = SlopeState.Normal;
+        _distanceInCurrentState = 0f;
+        if (_marble != null)
+            _targetPosition = _marble.position;
+    }
+
     void Update()
     {
         //UpdateSliderTexts();
@@ -196,6 +229,11 @@ public class MarbleMovement : MonoBehaviour
 
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
+                // Click-to-move takes over: cancel Phase 12 march so both systems
+                // do not write marble.position in the same frame (causes jitter).
+                if (_travelController != null && _travelController.IsDrivingMover)
+                    _travelController.CancelTravel();
+
                 Vector3 tapped = new Vector3(hit.point.x, _marble.position.y, hit.point.z);
                 _targetPosition = _mapStreamer != null?
                     _mapStreamer.ClampWorldPositionXZ(tapped, _marbleBoundaryPadding)
@@ -218,6 +256,13 @@ public class MarbleMovement : MonoBehaviour
     private void Move()
     {
         if (!_moving) return;
+
+        // Travel march owns the transform while Status == Marching.
+        if (_travelController != null && _travelController.IsDrivingMover)
+        {
+            StopMoving();
+            return;
+        }
 
         Vector3 current = _marble.position;
         if(_mapStreamer != null)
