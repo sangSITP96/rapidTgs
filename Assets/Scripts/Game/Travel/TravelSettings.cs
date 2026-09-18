@@ -12,6 +12,22 @@ namespace Game.Travel
         [Tooltip("Arrival distance threshold in world units.")]
         [Min(0.01f)] public float ArrivalDistanceThreshold = 0.15f;
 
+        [Header("Route Follow Smoothing")]
+        [Tooltip("Steer toward a point ahead on the route instead of the next stride corner.")]
+        public bool EnableRouteLookAhead = true;
+
+        [Tooltip("How far ahead (world units) to aim along the polyline. Higher = smoother corners.")]
+        [Min(0.05f)] public float RouteLookAheadDistance = 0.55f;
+
+        [Tooltip("Max turn rate in degrees per world unit traveled. Lower = softer turns.")]
+        [Min(1f)] public float RouteMaxTurnDegreesPerWorldUnit = 140f;
+
+        [Tooltip("Rebuild sparse stride waypoints into a Catmull-Rom curve before march. Can overshoot sharp corners — leave off for maximum path fidelity.")]
+        public bool ResampleRouteWithCatmullRom = false;
+
+        [Tooltip("Spacing between Catmull-Rom samples (world units).")]
+        [Min(0.02f)] public float SmoothPathSampleSpacing = 0.1f;
+
         [Header("Surface Movement Modifiers")]
         [Min(0f)] public float GrasslandMovementModifier = 1f;
         [Min(0f)] public float ForestMovementModifier = 0.70f;

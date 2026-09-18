@@ -27,6 +27,8 @@ public class TgsBiomeTerritoryGenerator : MonoBehaviour
 
     [Header("Output")] [SerializeField] private TgsBiomeMapData _mapData;
 
+    public TgsBiomeMapData MapData => _mapData;
+
     [Header("Cell Preview")]
     [Tooltip("Padding giữa các cell khi preview màu. Tăng nhẹ để không thấy đường nét đứt giữa các ô cùng territory.")]
     [SerializeField] private float _cellFillPadding = 0.1f;

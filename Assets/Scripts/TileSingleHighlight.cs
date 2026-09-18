@@ -2,6 +2,7 @@ using TGS;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Serialization;
+using Game.Navigation;
 
 public class TileSingleHighlight : MonoBehaviour
 {
@@ -70,6 +71,10 @@ public class TileSingleHighlight : MonoBehaviour
 
     private void HandlePointerInput()
     {
+        // Phase 13 destination select owns ground clicks while active.
+        if (NavigationController.IsDestinationSelectModeActive)
+            return;
+
         if (Input.GetMouseButtonDown(0))
         {
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())

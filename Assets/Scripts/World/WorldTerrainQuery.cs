@@ -55,15 +55,16 @@ public class WorldTerrainQuery : MonoBehaviour
         worldPos = default;
 
         if (_streamer == null ||
-            !_streamer.TryGetChunkWorldBounds(chunkCoord, out float minX, out float maxX, out float minZ, out float maxZ))
+            !_streamer.TryGetChunkWorldBounds(chunkCoord, out float chunkMinX, out float chunkMaxX, out float chunkMinZ, out float chunkMaxZ))
         {
             return false;
         }
 
-        minX += edgePadding;
-        maxX -= edgePadding;
-        minZ += edgePadding;
-        maxZ -= edgePadding;
+        // Randomize inside padded area, but UV must use full chunk bounds.
+        float minX = chunkMinX + edgePadding;
+        float maxX = chunkMaxX - edgePadding;
+        float minZ = chunkMinZ + edgePadding;
+        float maxZ = chunkMaxZ - edgePadding;
 
         if (minX >= maxX || minZ >= maxZ)
             return false;
@@ -77,24 +78,68 @@ public class WorldTerrainQuery : MonoBehaviour
             float x = Random.Range(minX, maxX);
             float z = Random.Range(minZ, maxZ);
             var localUV = new Vector2(
-                Mathf.InverseLerp(minX, maxX, x),
-                Mathf.InverseLerp(minZ, maxZ, z));
+                Mathf.InverseLerp(chunkMinX, chunkMaxX, x),
+                Mathf.InverseLerp(chunkMinZ, chunkMaxZ, z));
 
-            if (!IsLakeAtCoord(chunkCoord, data, localUV))
-            {
-                worldPos = new Vector3(x, y, z);
+            if (IsLakeAtCoord(chunkCoord, data, localUV))
+                continue;
+
+            worldPos = new Vector3(x, y, z);
+            if (!IsMovementBlocked(worldPos) && !IsLake(worldPos))
                 return true;
-            }
         }
 
         float centerX = (minX + maxX) * 0.5f;
         float centerZ = (minZ + maxZ) * 0.5f;
-        var centerUV = new Vector2(0.5f, 0.5f);
 
-        if (!IsLakeAtCoord(chunkCoord, data, centerUV))
-        {
-            worldPos = new Vector3(centerX, y, centerZ);
+        return TryFindNearestLandPosition(
+            new Vector3(centerX, y, centerZ),
+            maxRadius: Mathf.Max(maxX - minX, maxZ - minZ) * 0.5f,
+            ringCount: 12,
+            samplesPerRing: 16,
+            out worldPos);
+    }
+
+    /// <summary>
+    /// Spiral search for a nearby non-lake position. Used when random spawn fails or marble starts on water.
+    /// </summary>
+    public bool TryFindNearestLandPosition(
+        Vector3 from,
+        float maxRadius,
+        int ringCount,
+        int samplesPerRing,
+        out Vector3 landPos)
+    {
+        landPos = from;
+        float y = from.y;
+
+        if (!IsMovementBlocked(from) && !IsLake(from))
             return true;
+
+        ringCount = Mathf.Max(1, ringCount);
+        samplesPerRing = Mathf.Max(4, samplesPerRing);
+        maxRadius = Mathf.Max(0.1f, maxRadius);
+
+        for (int ring = 1; ring <= ringCount; ring++)
+        {
+            float radius = maxRadius * (ring / (float)ringCount);
+            for (int s = 0; s < samplesPerRing; s++)
+            {
+                float ang = (s / (float)samplesPerRing) * Mathf.PI * 2f;
+                var candidate = new Vector3(
+                    from.x + Mathf.Cos(ang) * radius,
+                    y,
+                    from.z + Mathf.Sin(ang) * radius);
+
+                if (_streamer != null)
+                    candidate = _streamer.ClampWorldPositionXZ(candidate, 0.05f);
+
+                if (!IsMovementBlocked(candidate) && !IsLake(candidate))
+                {
+                    landPos = candidate;
+                    return true;
+                }
+            }
         }
 
         return false;

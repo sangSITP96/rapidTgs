@@ -252,23 +252,143 @@ public class InfiniteMapStreamer : MonoBehaviour
 
         EnsureChunkLoaded(chunkCoord);
 
-        if (_terrainQuery != null &&
+        Vector3 spawnPos = CoordToWorld(chunkCoord);
+        spawnPos.y = _marble.position.y;
+
+        bool placedOnLand = _terrainQuery != null &&
             _terrainQuery.TryGetRandomLandPosition(
                 chunkCoord,
                 _marbleSpawnEdgePadding,
                 _marbleSpawnMaxAttempts,
-                out Vector3 spawnPos))
+                out spawnPos);
+
+        if (!placedOnLand)
         {
+            spawnPos = CoordToWorld(chunkCoord);
             spawnPos.y = _marble.position.y;
-            _marble.position = spawnPos;
+
+            if (_terrainQuery != null)
+            {
+                float searchRadius = Mathf.Max(_tileSize.x, _tileSize.y) * 0.45f;
+                if (_terrainQuery.TryFindNearestLandPosition(
+                        spawnPos,
+                        searchRadius,
+                        ringCount: 16,
+                        samplesPerRing: 20,
+                        out Vector3 nearestLand))
+                {
+                    spawnPos = nearestLand;
+                    placedOnLand = true;
+                }
+            }
         }
-        else
+
+        spawnPos.y = _marble.position.y;
+        _marble.position = spawnPos;
+
+        // Final safety: never leave marble on lake after spawn.
+        EnsureMarbleOnLand();
+
+        if (!placedOnLand &&
+            _terrainQuery != null &&
+            (_terrainQuery.IsMovementBlocked(_marble.position) || _terrainQuery.IsLake(_marble.position)))
         {
-            _marble.position = CoordToWorld(chunkCoord);
+            Debug.LogWarning(
+                $"{nameof(InfiniteMapStreamer)}: Could not find a non-lake spawn for marble on chunk {chunkCoord}. " +
+                "March may be blocked until the marble is moved onto land.");
         }
 
         if (_focusCameraOnMarbleSpawn)
             FocusCameraOn(_marble.position);
+    }
+
+    /// <summary>
+    /// If the marble is currently on lake/blocked terrain (bake and/or TGS biome), move it to nearest land.
+    /// Safe to call after TGS/bake systems are ready.
+    /// </summary>
+    public bool EnsureMarbleOnLand(float searchRadius = -1f)
+    {
+        if (_marble == null)
+            return false;
+
+        if (_terrainQuery == null)
+            _terrainQuery = FindFirstObjectByType<WorldTerrainQuery>();
+
+        if (_terrainQuery == null)
+            return false;
+
+        Vector3 current = _marble.position;
+        var tgs = FindFirstObjectByType<TGS.TerrainGridSystem>();
+        var mapData = FindFirstObjectByType<TgsBiomeTerritoryGenerator>()?.MapData;
+
+        if (!IsWorldOrTgsLake(current, tgs, mapData))
+            return true;
+
+        float radius = searchRadius > 0f
+            ? searchRadius
+            : Mathf.Max(_tileSize.x, _tileSize.y) * 0.5f;
+
+        int ringCount = 20;
+        int samplesPerRing = 24;
+        for (int ring = 1; ring <= ringCount; ring++)
+        {
+            float r = radius * (ring / (float)ringCount);
+            for (int s = 0; s < samplesPerRing; s++)
+            {
+                float ang = (s / (float)samplesPerRing) * Mathf.PI * 2f;
+                var candidate = new Vector3(
+                    current.x + Mathf.Cos(ang) * r,
+                    current.y,
+                    current.z + Mathf.Sin(ang) * r);
+                candidate = ClampWorldPositionXZ(candidate, 0.05f);
+
+                if (!IsWorldOrTgsLake(candidate, tgs, mapData))
+                {
+                    _marble.position = candidate;
+                    Debug.Log($"{nameof(InfiniteMapStreamer)}: Moved marble off lake to {candidate}.");
+                    if (_focusCameraOnMarbleSpawn)
+                        FocusCameraOn(candidate);
+                    return true;
+                }
+            }
+        }
+
+        if (_terrainQuery.TryFindNearestLandPosition(
+                current,
+                radius,
+                ringCount: 20,
+                samplesPerRing: 24,
+                out Vector3 landPos))
+        {
+            landPos.y = current.y;
+            _marble.position = landPos;
+            Debug.Log($"{nameof(InfiniteMapStreamer)}: Moved marble off baked lake to {landPos}.");
+            if (_focusCameraOnMarbleSpawn)
+                FocusCameraOn(landPos);
+            return true;
+        }
+
+        Debug.LogWarning($"{nameof(InfiniteMapStreamer)}: EnsureMarbleOnLand failed near {current}.");
+        return false;
+    }
+
+    private bool IsWorldOrTgsLake(Vector3 worldPos, TGS.TerrainGridSystem tgs, TgsBiomeMapData mapData)
+    {
+        if (_terrainQuery != null &&
+            (_terrainQuery.IsMovementBlocked(worldPos) || _terrainQuery.IsLake(worldPos)))
+        {
+            return true;
+        }
+
+        if (tgs == null || mapData == null || tgs.cells == null)
+            return false;
+
+        var cell = tgs.CellGetAtPosition(worldPos, worldSpace: true);
+        int cellIndex = tgs.CellGetIndex(cell);
+        if (cellIndex < 0 || cellIndex >= tgs.cells.Count)
+            return false;
+
+        return mapData.GetBiomeForTerritory(tgs.cells[cellIndex].territoryIndex) == BiomeType.Lake;
     }
 
     public void EnsureChunkLoaded(Vector2Int coord)

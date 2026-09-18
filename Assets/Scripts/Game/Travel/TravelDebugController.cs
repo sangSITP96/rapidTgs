@@ -172,11 +172,13 @@ namespace Game.Travel
                 $"Status: {s.Status}\n" +
                 $"Surface: {s.CurrentSurface}  trail:{s.IsOnTrail}  passable:{s.IsPassable}\n" +
                 $"Speed: {s.CurrentSpeed:0.00}  rem:{s.RemainingDistance:0.00}\n" +
+                $"Route: {(s.HasRoute ? $"{s.RouteWaypointIndex}/{Mathf.Max(0, s.RouteWaypointCount - 1)}" : "none")}\n" +
                 $"March:{s.MarchElapsedGameSeconds / 3600.0:0.00}h  Rest:{s.RestElapsedGameSeconds / 3600.0:0.00}h\n" +
                 $"{clock}\n" +
                 $"{weatherLine}\n" +
                 $"{moraleLine}\n" +
-                "Keys: T begin | C camp | R rest | X stop rest | M resume | V cancel";
+                "Keys: T begin | C camp | R rest | X stop rest | M resume | V cancel\n" +
+                "Nav: N destination mode → click → Approve";
 
             float pad = 16f * scale;
             float width = Mathf.Clamp(Screen.width * 0.55f, 420f * scale, Screen.width - pad * 2f);

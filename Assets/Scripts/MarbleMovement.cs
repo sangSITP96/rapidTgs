@@ -1,4 +1,5 @@
 using Game.Travel;
+using Game.Navigation;
 using Game.Utilities;
 using TGS;
 using UnityEngine;
@@ -18,6 +19,10 @@ public class MarbleMovement : MonoBehaviour
     [Header("Phase 12 Travel")]
     [Tooltip("If assigned, click-move and travel-march will not fight over the marble.")]
     [SerializeField] private TroopTravelController _travelController;
+
+    [Header("Click / Tap Move")]
+    [Tooltip("When false, tap/click no longer moves the marble. Use Navigation Plan March instead.")]
+    [SerializeField] private bool _enableClickToMove = false;
 
     [Header("List Sliders")] [FormerlySerializedAs("_speedSlider")] [SerializeField]
     private Slider _neutralSpeedSlider;
@@ -221,6 +226,14 @@ public class MarbleMovement : MonoBehaviour
 
     private void HandleTap()
     {
+        if (!_enableClickToMove)
+            return;
+
+        // Phase 13: Navigation destination-select mode owns clicks.
+        // Do not cancel travel or start click-to-move while that mode is active.
+        if (NavigationController.IsDestinationSelectModeActive)
+            return;
+
         if (Input.GetMouseButtonDown(0))
         {
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())

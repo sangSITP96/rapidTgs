@@ -14,6 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   BaseMarchSpeedUnitsPerGameHour: 12
   ArrivalDistanceThreshold: 0.15
+  EnableRouteLookAhead: 1
+  RouteLookAheadDistance: 0.55
+  RouteMaxTurnDegreesPerWorldUnit: 140
+  ResampleRouteWithCatmullRom: 0
+  SmoothPathSampleSpacing: 0.1
   GrasslandMovementModifier: 1
   ForestMovementModifier: 0.7
   MountainMovementModifier: 0.45

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 798b8f8fffab58d49ae3aacd6b5b7084, type: 3}
   m_Name: TimeConfig_FastDemo
   m_EditorClassIdentifier: 
-  GameSecondsPerRealSecond: 600
+  GameSecondsPerRealSecond: 60
   StartHour: 6
   StartMinute: 0
   StartSecond: 0

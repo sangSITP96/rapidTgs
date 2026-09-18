@@ -26,6 +26,9 @@ namespace Game.Travel
         public double RestElapsedGameSeconds;
         public double CampElapsedGameSeconds;
         public bool HasDestination;
+        public bool HasRoute;
+        public int RouteWaypointIndex;
+        public int RouteWaypointCount;
         public string StatusLabel => Status.ToString();
     }
 }
