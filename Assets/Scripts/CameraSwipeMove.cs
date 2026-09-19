@@ -1,7 +1,7 @@
 using TGS;
 using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.EventSystems;
+using Game.UI;
 
 [DefaultExecutionOrder(10)]
 public class CameraSwipeMove : MonoBehaviour
@@ -133,7 +133,7 @@ public class CameraSwipeMove : MonoBehaviour
             _velocity = avgVelocity / VELOCITY_SAMPLES;
         }
 
-        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+        if (UiPointerUtility.IsPointerOverUi())
         {
             _velocity = Vector2.zero;
             _dragging = false;

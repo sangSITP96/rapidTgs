@@ -1,8 +1,8 @@
 using TGS;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.Serialization;
 using Game.Navigation;
+using Game.UI;
 
 public class TileSingleHighlight : MonoBehaviour
 {
@@ -76,7 +76,7 @@ public class TileSingleHighlight : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
-            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            if (UiPointerUtility.IsPointerOverUi())
                 return;
 
             _pointerDownScreenPos = Input.mousePosition;

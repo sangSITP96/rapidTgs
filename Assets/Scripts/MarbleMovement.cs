@@ -1,10 +1,9 @@
 using Game.Travel;
 using Game.Navigation;
 using Game.Utilities;
+using Game.UI;
 using TGS;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
 
@@ -86,7 +85,7 @@ public class MarbleMovement : MonoBehaviour
     private float _upHillSpeedValue = 50f;
     private float _downHillSpeedValue = 0f;
 
-    private bool _isShowConfigPanel = false;
+    private bool _wasDevelopPanelActive;
     
     private Camera _camera;
 
@@ -104,7 +103,6 @@ public class MarbleMovement : MonoBehaviour
     private float _previousHeight = 0f;
     
     // cache delegates
-    private UnityEngine.Events.UnityAction _onOffPanelAction;
     private UnityEngine.Events.UnityAction<float> _neutralSpeedAction;
     private UnityEngine.Events.UnityAction<float> _upHillAction;
     private UnityEngine.Events.UnityAction<float> _downHillAction;
@@ -112,20 +110,34 @@ public class MarbleMovement : MonoBehaviour
 
     void Awake()
     {
-        //
-        _onOffPanelAction = OnOffSpeedConfigPanel;
-        _neutralSpeedAction = (x) => { _neutralSpeedText.text = x.ToString("0"); };
-        _upHillAction = (x) => { _upHillText.text = x.ToString("0") + "%"; };
-        _downHillAction = (x) => { _downHillText.text = x.ToString("0") + "%"; };
-        //
+        _neutralSpeedAction = (x) =>
+        {
+            if (_neutralSpeedText != null)
+                _neutralSpeedText.text = x.ToString("0");
+        };
+        _upHillAction = (x) =>
+        {
+            if (_upHillText != null)
+                _upHillText.text = x.ToString("0") + "%";
+        };
+        _downHillAction = (x) =>
+        {
+            if (_downHillText != null)
+                _downHillText.text = x.ToString("0") + "%";
+        };
+
         if (_travelController == null)
             _travelController = FindFirstObjectByType<TroopTravelController>();
 
         _camera = Camera.main;
-        _onOffConfigPanelButton.onClick.RemoveAllListeners();
-        _onOffConfigPanelButton.onClick.AddListener(() => { OnOffSpeedConfigPanel(); });
 
-        // Slider Config
+        // Legacy toggle button (optional). Develop Mode now opens PanelSpeedConfig.
+        if (_onOffConfigPanelButton != null)
+        {
+            _onOffConfigPanelButton.onClick.RemoveAllListeners();
+            _onOffConfigPanelButton.onClick.AddListener(OnOffSpeedConfigPanel);
+        }
+
         if (_neutralSpeedSlider != null)
         {
             _neutralSpeedSlider.minValue = 1f;
@@ -145,18 +157,12 @@ public class MarbleMovement : MonoBehaviour
         }
 
         RegisterOnValueChangeSliders();
-        // Initial Setup
-        // Load Save Data
-        _neutralSpeedValue = PlayerPrefs.GetFloat("neutralspeed", _neutralSpeedValue);
-        _upHillSpeedValue = PlayerPrefs.GetFloat("uphillspeed", _upHillSpeedValue);
-        _downHillSpeedValue = PlayerPrefs.GetFloat("downhillspeed", _downHillSpeedValue);
-        //
-        
-        _neutralSpeedSlider.value = _neutralSpeedValue;
-        _upHillSSlowdownSlider.value = _upHillSpeedValue;
-        _downHillBoostSlider.value = _downHillSpeedValue;
-        //
-        _panelGameObject.SetActive(false);
+        ApplyMovementSettingsToUi();
+
+        if (_panelGameObject != null)
+            _panelGameObject.SetActive(false);
+
+        _wasDevelopPanelActive = false;
     }
 
     void Start()
@@ -198,27 +204,87 @@ public class MarbleMovement : MonoBehaviour
 
     void Update()
     {
-        //UpdateSliderTexts();
+        SyncDevelopPanelLifecycle();
         HandleTap();
         Move();
     }
 
-    private void OnOffSpeedConfigPanel()
+    /// <summary>
+    /// Fills Movement Settings sliders/texts from saved values.
+    /// Called when Develop Mode → Movement Settings is shown.
+    /// </summary>
+    public void ApplyMovementSettingsToUi()
     {
-        _isShowConfigPanel = !_isShowConfigPanel;
-        if (!_isShowConfigPanel)
-        {
+        _neutralSpeedValue = PlayerPrefs.GetFloat("neutralspeed", _neutralSpeedValue);
+        _upHillSpeedValue = PlayerPrefs.GetFloat("uphillspeed", _upHillSpeedValue);
+        _downHillSpeedValue = PlayerPrefs.GetFloat("downhillspeed", _downHillSpeedValue);
+
+        if (_neutralSpeedSlider != null)
+            _neutralSpeedSlider.SetValueWithoutNotify(_neutralSpeedValue);
+
+        if (_upHillSSlowdownSlider != null)
+            _upHillSSlowdownSlider.SetValueWithoutNotify(_upHillSpeedValue);
+
+        if (_downHillBoostSlider != null)
+            _downHillBoostSlider.SetValueWithoutNotify(_downHillSpeedValue);
+
+        UpdateSliderTexts();
+    }
+
+    /// <summary>
+    /// Persists current slider values (same as closing the old config button).
+    /// </summary>
+    public void SaveMovementSettingsFromUi()
+    {
+        if (_neutralSpeedSlider != null)
             _neutralSpeedValue = _neutralSpeedSlider.value;
+
+        if (_upHillSSlowdownSlider != null)
             _upHillSpeedValue = _upHillSSlowdownSlider.value;
+
+        if (_downHillBoostSlider != null)
             _downHillSpeedValue = _downHillBoostSlider.value;
-            PlayerPrefs.SetFloat("neutralspeed", _neutralSpeedValue);
-            PlayerPrefs.SetFloat("uphillspeed", _upHillSpeedValue);
-            PlayerPrefs.SetFloat("downhillspeed", _downHillSpeedValue);
-            PlayerPrefs.Save();
+
+        PlayerPrefs.SetFloat("neutralspeed", _neutralSpeedValue);
+        PlayerPrefs.SetFloat("uphillspeed", _upHillSpeedValue);
+        PlayerPrefs.SetFloat("downhillspeed", _downHillSpeedValue);
+        PlayerPrefs.Save();
+    }
+
+    private void SyncDevelopPanelLifecycle()
+    {
+        if (_panelGameObject == null)
+            return;
+
+        bool active = _panelGameObject.activeSelf;
+        if (active == _wasDevelopPanelActive)
+            return;
+
+        if (active)
+        {
+            ApplyMovementSettingsToUi();
+            if (_moralePanelGameObject != null)
+                _moralePanelGameObject.SetActive(false);
+        }
+        else
+        {
+            SaveMovementSettingsFromUi();
+            if (_moralePanelGameObject != null)
+                _moralePanelGameObject.SetActive(true);
         }
 
-        _panelGameObject.SetActive(_isShowConfigPanel);
-        _moralePanelGameObject.SetActive(!_isShowConfigPanel);
+        _wasDevelopPanelActive = active;
+    }
+
+    // Legacy entry point if an old toggle button is still wired.
+    private void OnOffSpeedConfigPanel()
+    {
+        if (_panelGameObject == null)
+            return;
+
+        bool show = !_panelGameObject.activeSelf;
+        _panelGameObject.SetActive(show);
+        // SyncDevelopPanelLifecycle handles apply/save + morale panel.
     }
 
     private void HandleTap()
@@ -231,7 +297,7 @@ public class MarbleMovement : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
-            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            if (UiPointerUtility.IsPointerOverUi())
                 return;
             Ray ray = _camera.ScreenPointToRay(Input.mousePosition);
 
@@ -561,44 +627,48 @@ public class MarbleMovement : MonoBehaviour
 
     private void RegisterOnValueChangeSliders()
     {
-        _neutralSpeedSlider.onValueChanged.AddListener(_neutralSpeedAction);
-        _upHillSSlowdownSlider.onValueChanged.AddListener(_upHillAction);
-        _downHillBoostSlider.onValueChanged.AddListener(_downHillAction);
+        if (_neutralSpeedSlider != null)
+            _neutralSpeedSlider.onValueChanged.AddListener(_neutralSpeedAction);
+
+        if (_upHillSSlowdownSlider != null)
+            _upHillSSlowdownSlider.onValueChanged.AddListener(_upHillAction);
+
+        if (_downHillBoostSlider != null)
+            _downHillBoostSlider.onValueChanged.AddListener(_downHillAction);
     }
 
     private void UpdateSliderTexts()
     {
-        _neutralSpeedText.text = _neutralSpeedSlider.value.ToString("0");
-        _upHillText.text = _upHillSSlowdownSlider.value.ToString("0") + "%";
-        _downHillText.text = _downHillBoostSlider.value.ToString("0") + "%";
+        if (_neutralSpeedText != null && _neutralSpeedSlider != null)
+            _neutralSpeedText.text = _neutralSpeedSlider.value.ToString("0");
+
+        if (_upHillText != null && _upHillSSlowdownSlider != null)
+            _upHillText.text = _upHillSSlowdownSlider.value.ToString("0") + "%";
+
+        if (_downHillText != null && _downHillBoostSlider != null)
+            _downHillText.text = _downHillBoostSlider.value.ToString("0") + "%";
     }
 
     public void BackToMenu()
     {
-        SceneManager.LoadScene("MenuWithWeather");
+        // Weather preset picker now lives in Develop Mode → Environment.
+        // Close the develop panel instead of loading MenuWithWeather.
+        if (_panelGameObject != null)
+            _panelGameObject.SetActive(false);
     }
     
     private void OnDestroy()
     {
-        // Remove all listeners
         if (_onOffConfigPanelButton != null)
-        {
-            _onOffConfigPanelButton.onClick.RemoveListener(_onOffPanelAction);
-        }
+            _onOffConfigPanelButton.onClick.RemoveListener(OnOffSpeedConfigPanel);
 
         if (_neutralSpeedSlider != null)
-        {
             _neutralSpeedSlider.onValueChanged.RemoveListener(_neutralSpeedAction);
-        }
 
         if (_upHillSSlowdownSlider != null)
-        {
             _upHillSSlowdownSlider.onValueChanged.RemoveListener(_upHillAction);
-        }
 
         if (_downHillBoostSlider != null)
-        {
             _downHillBoostSlider.onValueChanged.RemoveListener(_downHillAction);
-        }
     }
 }

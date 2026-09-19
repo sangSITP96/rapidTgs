@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TGS;
 using UnityEngine;
 
 [DefaultExecutionOrder(-100)]
@@ -17,6 +18,8 @@ public class InfiniteMapStreamer : MonoBehaviour
     [SerializeField] private Transform _cameraTransform;
     [SerializeField] private Transform _marble;
     [SerializeField] private GameObject _chunkPrefab;
+    [SerializeField] private TerrainGridSystem _terrainGridSystem;
+    [SerializeField] private bool _alignTerrainGridOnStart = true;
 
     [Header("Grid Size (N x M)")]
     [SerializeField] private int _rows = 4;
@@ -171,6 +174,9 @@ public class InfiniteMapStreamer : MonoBehaviour
 
     private void Start()
     {
+        if (_alignTerrainGridOnStart)
+            AlignTerrainGridToWorldBounds();
+
         if (_spawnMarbleOnStart)
         {
             TrySpawnMarbleOnChunk(_marbleSpawnChunk);
@@ -181,6 +187,35 @@ public class InfiniteMapStreamer : MonoBehaviour
         }
 
         RefreshStreaming(force: true);
+    }
+
+    /// <summary>
+    /// Places TGS so its centered ±0.5 local footprint matches the streamer world rectangle.
+    /// Without this, Center-pivoted chunks live in +X/+Z while TGS stays at origin → click misses.
+    /// </summary>
+    public void AlignTerrainGridToWorldBounds()
+    {
+        if (_terrainGridSystem == null)
+            _terrainGridSystem = FindFirstObjectByType<TerrainGridSystem>();
+
+        if (_terrainGridSystem == null)
+            return;
+
+        if (!TryGetWorldBounds(out float minX, out float maxX, out float minZ, out float maxZ))
+            return;
+
+        float width = maxX - minX;
+        float depth = maxZ - minZ;
+        if (width <= 0f || depth <= 0f)
+            return;
+
+        Transform tgsTransform = _terrainGridSystem.transform;
+        float centerX = (minX + maxX) * 0.5f;
+        float centerZ = (minZ + maxZ) * 0.5f;
+
+        tgsTransform.position = new Vector3(centerX, tgsTransform.position.y, centerZ);
+        _terrainGridSystem.SetSize(new Vector2(width, depth));
+        _terrainGridSystem.Redraw();
     }
 
     private void ResolveCameraTransform()
@@ -535,25 +570,25 @@ public class InfiniteMapStreamer : MonoBehaviour
         Vector3 pos = CoordToWorld(coord);
         MapChunkRuntime runtime = null;
         GameObject go;
+        Quaternion rot = Quaternion.Euler(90f, 0f, 0f);
 
         if (_chunkPool.Count > 0)
         {
             runtime = _chunkPool.Dequeue();
             go = runtime.gameObject;
             go.transform.SetParent(transform, false);
-            go.transform.SetPositionAndRotation(pos, Quaternion.Euler(90f, 0f, 0f));
+            go.transform.SetPositionAndRotation(pos, rot);
             go.SetActive(true);
         }
         else
         {
-            go = Instantiate(
-                _chunkPrefab,
-                pos,
-                Quaternion.Euler(90f, 0f, 0f),
-                transform);
-
+            go = Instantiate(_chunkPrefab, pos, rot, transform);
             runtime = go.GetComponent<MapChunkRuntime>();
         }
+
+        // Quad is 1×1 in local XY; after X=90 it lies on XZ. Force size to tileSize
+        // so prefab scale mistakes (e.g. Plane-style 0.875 on a Quad) cannot shrink the map.
+        go.transform.localScale = new Vector3(_tileSize.x, _tileSize.y, 1f);
 
         if(runtime == null)
         {

@@ -52,8 +52,21 @@ public class WeatherPresetApplier : MonoBehaviour
         ApplyPreset(WeatherPresetSelection.CurrentPreset);
     }
 
+    public void ApplyPresetNow(WeatherTestPreset preset)
+    {
+        Preset = preset;
+        ApplyPreset(preset);
+        Debug.Log($"{nameof(WeatherPresetApplier)}: Applied preset {preset}.");
+    }
+
     private void ApplyPreset(WeatherTestPreset preset)
     {
+        if (WeatherManager == null)
+        {
+            Debug.LogWarning($"{nameof(WeatherPresetApplier)}: WeatherManager is not assigned.");
+            return;
+        }
+
         var db = WeatherManager.Database;
         if (db == null) return;
 

@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Game.Travel;
+using Game.UI;
 using TGS;
 using UnityEngine;
-using UnityEngine.EventSystems;
 
 namespace Game.Navigation
 {
@@ -35,15 +35,6 @@ namespace Game.Navigation
         [SerializeField] private Color _pathHighlightColor = new Color(0.2f, 0.75f, 1f, 0.45f);
         [SerializeField] private bool _highlightPathCells = true;
 
-        [Header("Touch / WebGL UI")]
-        [SerializeField] private bool _showTouchControls = true;
-        [SerializeField] private float _touchButtonHeight = 56f;
-
-        [Header("Approval UI (placeholder)")]
-        [SerializeField] private bool _showApprovalUi = true;
-        [SerializeField, Range(0.8f, 3f)] private float _overlayScale = 1.4f;
-        [SerializeField] private int _baseFontSize = 18;
-
         private NavigationRoute _pendingRoute;
         private bool _awaitingApproval;
         private int _highlightedDestinationCell = -1;
@@ -53,19 +44,13 @@ namespace Game.Navigation
         private bool _pointerDownOnGround;
         private int _pointerFingerId = -1;
 
-        private GUIStyle _boxStyle;
-        private GUIStyle _labelStyle;
-        private GUIStyle _buttonStyle;
-        private Texture2D _boxBg;
-
-        private Rect _navUiGuiRect;
-
         public bool DestinationSelectMode => _destinationSelectMode;
         public bool IsAwaitingApproval => _awaitingApproval;
         public NavigationRoute PendingRoute => _pendingRoute;
 
         public event Action<bool> DestinationSelectModeChanged;
         public event Action<NavigationRoute> RoutePendingApproval;
+        public event Action<NavigationRoute> RouteRequestFailed;
         public event Action RouteApprovalCancelled;
         public event Action<NavigationRoute> RouteApproved;
 
@@ -84,9 +69,6 @@ namespace Game.Navigation
         {
             if (Instance == this)
                 Instance = null;
-
-            if (_boxBg != null)
-                Destroy(_boxBg);
         }
 
         private void OnEnable()
@@ -97,53 +79,32 @@ namespace Game.Navigation
         private void Update()
         {
             if (Input.GetKeyDown(_toggleModeKey))
+            {
+                if (!_destinationSelectMode)
+                    UiOverlayExclusive.Instance?.PrepareForPlanMarch();
+
                 SetDestinationSelectMode(!_destinationSelectMode);
+            }
 
             if (!_destinationSelectMode)
                 return;
 
-            if (IsPointerOverNavUi())
+            if (UiOverlayExclusive.IsPlanMarchBlocked)
+                return;
+
+            // While Approve/Cancel is up, never treat clicks as destination picks.
+            if (_awaitingApproval)
+                return;
+
+            if (UiPointerUtility.IsPointerOverUi())
                 return;
 
             HandleDestinationPointer();
         }
 
-        private bool IsPointerOverNavUi()
-        {
-            if (_navUiGuiRect.width <= 1f || _navUiGuiRect.height <= 1f)
-                return false;
-
-            if (TryGetPointerScreenPosition(out Vector2 screenPos))
-            {
-                Vector2 guiPos = new Vector2(screenPos.x, Screen.height - screenPos.y);
-                if (_navUiGuiRect.Contains(guiPos))
-                    return true;
-            }
-
-            return false;
-        }
-
-        private static bool TryGetPointerScreenPosition(out Vector2 screenPos)
-        {
-            if (Input.touchCount > 0)
-            {
-                screenPos = Input.GetTouch(0).position;
-                return true;
-            }
-
-            screenPos = Input.mousePosition;
-            return true;
-        }
-
         private static bool IsPointerOverGameUi()
         {
-            if (EventSystem.current == null)
-                return false;
-
-            if (Input.touchCount > 0)
-                return EventSystem.current.IsPointerOverGameObject(Input.GetTouch(0).fingerId);
-
-            return EventSystem.current.IsPointerOverGameObject();
+            return UiPointerUtility.IsPointerOverUi();
         }
 
         public void ResolveRefs()
@@ -174,6 +135,9 @@ namespace Game.Navigation
 
         public void SetDestinationSelectMode(bool active)
         {
+            if (active)
+                UiOverlayExclusive.Instance?.PrepareForPlanMarch();
+
             if (_destinationSelectMode == active)
                 return;
 
@@ -191,6 +155,45 @@ namespace Game.Navigation
         public void ToggleDestinationSelectMode()
         {
             SetDestinationSelectMode(!_destinationSelectMode);
+        }
+
+        public void RequestRouteToWorld(Vector3 destinationWorld)
+        {
+            ResolveRefs();
+
+            if (_pathfinder == null)
+            {
+                Debug.LogWarning($"{nameof(NavigationController)}: Pathfinder missing.");
+                return;
+            }
+
+            Vector3 origin = _troop != null ? _troop.position : transform.position;
+            NavigationRoute route = _pathfinder.FindRouteToWorld(origin, destinationWorld);
+
+            ClearPathHighlights();
+
+            int highlightCell = route != null && route.DestinationCellIndex >= 0
+                ? route.DestinationCellIndex
+                : _pathfinder.TryGetCellIndexAtWorld(destinationWorld);
+            HighlightDestination(highlightCell);
+
+            if (route == null || !route.IsValid)
+            {
+                _pendingRoute = route;
+                _awaitingApproval = false;
+                Debug.LogWarning(
+                    $"{nameof(NavigationController)}: Route failed — " +
+                    $"{(route != null ? route.FailureReason : "null")}");
+                RouteRequestFailed?.Invoke(route);
+                return;
+            }
+
+            _pendingRoute = route;
+            _awaitingApproval = true;
+            if (_highlightPathCells)
+                HighlightPath(route);
+
+            RoutePendingApproval?.Invoke(route);
         }
 
         public void RequestRouteToCell(int destinationCellIndex)
@@ -216,6 +219,7 @@ namespace Game.Navigation
                 Debug.LogWarning(
                     $"{nameof(NavigationController)}: Route failed — " +
                     $"{(route != null ? route.FailureReason : "null")}");
+                RouteRequestFailed?.Invoke(route);
                 return;
             }
 
@@ -277,7 +281,7 @@ namespace Game.Navigation
                 Touch touch = Input.GetTouch(0);
                 if (touch.phase == TouchPhase.Began)
                 {
-                    if (IsPointerOverGameUi() || IsPointerOverNavUi())
+                    if (IsPointerOverGameUi())
                         return;
 
                     _pointerFingerId = touch.fingerId;
@@ -296,13 +300,20 @@ namespace Game.Navigation
                     }
                     else if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled)
                     {
+                        if (IsPointerOverGameUi())
+                        {
+                            _pointerDownOnGround = false;
+                            _pointerFingerId = -1;
+                            return;
+                        }
+
                         if (_pointerDownOnGround &&
                             Vector2.Distance(_pointerDownScreenPos, touch.position) <= _clickDragThresholdPixels &&
                             TryRaycastGround(touch.position, out RaycastHit touchHit))
                         {
                             int cellIndex = _pathfinder.TryGetCellIndexAtWorld(touchHit.point);
                             if (cellIndex >= 0)
-                                RequestRouteToCell(cellIndex);
+                                RequestRouteToWorld(touchHit.point);
                         }
 
                         _pointerDownOnGround = false;
@@ -315,8 +326,11 @@ namespace Game.Navigation
 
             if (Input.GetMouseButtonDown(0))
             {
-                if (IsPointerOverGameUi() || IsPointerOverNavUi())
+                if (IsPointerOverGameUi())
+                {
+                    _pointerDownOnGround = false;
                     return;
+                }
 
                 _pointerDownScreenPos = Input.mousePosition;
                 _pointerDownOnGround = TryRaycastGround(Input.mousePosition, out _);
@@ -329,15 +343,24 @@ namespace Game.Navigation
                     _pointerDownOnGround = false;
             }
 
-            if (Input.GetMouseButtonUp(0) && _pointerDownOnGround)
+            if (Input.GetMouseButtonUp(0))
             {
-                float drag = Vector2.Distance(_pointerDownScreenPos, Input.mousePosition);
-                if (drag <= _clickDragThresholdPixels &&
-                    TryRaycastGround(Input.mousePosition, out RaycastHit hit))
+                if (IsPointerOverGameUi())
                 {
+                    _pointerDownOnGround = false;
+                    return;
+                }
+
+                if (_pointerDownOnGround)
+                {
+                    float drag = Vector2.Distance(_pointerDownScreenPos, Input.mousePosition);
+                    if (drag <= _clickDragThresholdPixels &&
+                        TryRaycastGround(Input.mousePosition, out RaycastHit hit))
+                    {
                     int cellIndex = _pathfinder.TryGetCellIndexAtWorld(hit.point);
                     if (cellIndex >= 0)
-                        RequestRouteToCell(cellIndex);
+                        RequestRouteToWorld(hit.point);
+                    }
                 }
 
                 _pointerDownOnGround = false;
@@ -394,7 +417,18 @@ namespace Game.Navigation
             if (_highlightedDestinationCell >= 0 && _highlightedDestinationCell != cellIndex)
                 _tgs.CellHideRegionSurface(_highlightedDestinationCell);
 
-            _tgs.CellToggleRegionSurface(cellIndex, true, _destinationHighlightColor);
+            _tgs.CellToggleRegionSurface(
+                cellIndex,
+                true,
+                _destinationHighlightColor,
+                refreshGeometry: false,
+                texture: null,
+                textureScale: Vector2.one,
+                textureOffset: Vector2.zero,
+                textureRotation: 0f,
+                overlay: true,
+                localSpace: false,
+                isCanvasTexture: false);
             _highlightedDestinationCell = cellIndex;
         }
 
@@ -411,7 +445,18 @@ namespace Game.Navigation
                 if (cellIndex == route.DestinationCellIndex)
                     continue;
 
-                _tgs.CellToggleRegionSurface(cellIndex, true, _pathHighlightColor);
+                _tgs.CellToggleRegionSurface(
+                    cellIndex,
+                    true,
+                    _pathHighlightColor,
+                    refreshGeometry: false,
+                    texture: null,
+                    textureScale: Vector2.one,
+                    textureOffset: Vector2.zero,
+                    textureRotation: 0f,
+                    overlay: true,
+                    localSpace: false,
+                    isCanvasTexture: false);
                 _highlightedPathCells.Add(cellIndex);
             }
         }
@@ -438,123 +483,5 @@ namespace Game.Navigation
             }
         }
 
-        private void EnsureStyles(float scale)
-        {
-            int fontSize = Mathf.RoundToInt(_baseFontSize * scale);
-
-            if (_boxBg == null)
-            {
-                _boxBg = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-                _boxBg.SetPixel(0, 0, new Color(0f, 0f, 0f, 0.75f));
-                _boxBg.Apply();
-            }
-
-            if (_boxStyle == null)
-                _boxStyle = new GUIStyle(GUI.skin.box);
-            _boxStyle.normal.background = _boxBg;
-            _boxStyle.normal.textColor = Color.white;
-            _boxStyle.fontSize = fontSize;
-            _boxStyle.alignment = TextAnchor.UpperLeft;
-            _boxStyle.wordWrap = true;
-            _boxStyle.padding = new RectOffset(12, 12, 10, 10);
-
-            if (_labelStyle == null)
-                _labelStyle = new GUIStyle(GUI.skin.label);
-            _labelStyle.normal.textColor = Color.white;
-            _labelStyle.fontSize = fontSize;
-            _labelStyle.wordWrap = true;
-
-            if (_buttonStyle == null)
-                _buttonStyle = new GUIStyle(GUI.skin.button);
-            _buttonStyle.fontSize = Mathf.RoundToInt(fontSize * 1.05f);
-            _buttonStyle.alignment = TextAnchor.MiddleCenter;
-            _buttonStyle.wordWrap = true;
-            _buttonStyle.padding = new RectOffset(10, 10, 8, 8);
-        }
-
-        private void OnGUI()
-        {
-            if (!_showApprovalUi && !_showTouchControls)
-            {
-                _navUiGuiRect = default;
-                return;
-            }
-
-            float dpiScale = Screen.dpi > 0f ? Mathf.Clamp(Screen.dpi / 160f, 1f, 2.5f) : 1f;
-            float scale = dpiScale * _overlayScale;
-            EnsureStyles(scale);
-
-            float pad = 12f * scale;
-            float width = Mathf.Clamp(380f * scale, 300f, Screen.width * 0.5f);
-            float btnH = Mathf.Max(44f, _touchButtonHeight) * scale;
-
-            float top = pad;
-            float left = Screen.width - width - pad;
-            float contentBottom = top;
-
-            if (_showTouchControls || _showApprovalUi)
-            {
-                string planLabel = _destinationSelectMode ? "Exit Plan Mode" : "Plan March";
-                var planBtn = new Rect(left, top, width, btnH);
-                if (GUI.Button(planBtn, planLabel, _buttonStyle))
-                    ToggleDestinationSelectMode();
-
-                contentBottom = planBtn.yMax;
-                top = contentBottom + pad * 0.5f;
-
-                string hint = _destinationSelectMode
-                    ? "Tap map to set destination"
-                    : "Tap Plan March, then tap destination";
-                float hintH = 40f * scale;
-                var hintRect = new Rect(left, top, width, hintH);
-                GUI.Box(hintRect, GUIContent.none, _boxStyle);
-                GUI.Label(
-                    new Rect(hintRect.x + 10f, hintRect.y + 6f, hintRect.width - 20f, hintRect.height - 12f),
-                    hint,
-                    _labelStyle);
-                contentBottom = hintRect.yMax;
-                top = contentBottom + pad * 0.5f;
-            }
-
-            if (_pendingRoute != null && !_pendingRoute.IsValid && _destinationSelectMode && _showApprovalUi)
-            {
-                float failH = 110f * scale;
-                var failRect = new Rect(left, top, width, failH);
-                GUI.Box(failRect, GUIContent.none, _boxStyle);
-                GUI.Label(
-                    new Rect(failRect.x + 10f, failRect.y + 8f, failRect.width - 20f, failRect.height - 16f),
-                    "Route Failed\n" + _pendingRoute.FailureReason,
-                    _labelStyle);
-                contentBottom = failRect.yMax;
-                top = contentBottom + pad * 0.5f;
-            }
-
-            if (_awaitingApproval && _pendingRoute != null && _pendingRoute.IsValid && _showApprovalUi)
-            {
-                float panelH = 70f * scale + btnH + pad;
-                var panel = new Rect(left, top, width, panelH);
-                GUI.Box(panel, GUIContent.none, _boxStyle);
-
-                string info =
-                    "Route Found\n" +
-                    $"Cells: {_pendingRoute.CellIndices.Count}   Dist ≈ {_pendingRoute.ApproximateDistance:0.00}";
-                GUI.Label(
-                    new Rect(panel.x + 10f, panel.y + 8f, panel.width - 20f, 54f * scale),
-                    info,
-                    _labelStyle);
-
-                float btnW = (panel.width - 30f) * 0.5f;
-                float btnY = panel.yMax - btnH - 10f * scale;
-                if (GUI.Button(new Rect(panel.x + 10f, btnY, btnW, btnH), "Approve March", _buttonStyle))
-                    ApprovePendingRoute();
-
-                if (GUI.Button(new Rect(panel.x + 20f + btnW, btnY, btnW, btnH), "Cancel", _buttonStyle))
-                    CancelPendingRoute();
-
-                contentBottom = panel.yMax;
-            }
-
-            _navUiGuiRect = new Rect(left - pad * 0.5f, pad * 0.5f, width + pad, contentBottom - pad * 0.5f + pad);
-        }
     }
 }

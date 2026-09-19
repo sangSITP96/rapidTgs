@@ -120,11 +120,13 @@ namespace Game.Navigation
             if (_tgs == null || _tgs.cells == null || _tgs.cells.Count == 0)
                 return -1;
 
+            // 1) Direct query at position.
             Cell cell = _tgs.CellGetAtPosition(worldPos, worldSpace: true);
             int index = _tgs.CellGetIndex(cell);
             if (index >= 0)
                 return index;
 
+            // 2) Retry on the TGS plane (marble Y often differs from grid plane).
             Vector3 onGridPlane = worldPos;
             onGridPlane.y = _tgs.transform.position.y;
             cell = _tgs.CellGetAtPosition(onGridPlane, worldSpace: true);
@@ -132,7 +134,40 @@ namespace Game.Navigation
             if (index >= 0)
                 return index;
 
+            // 3) Small radial samples — helps when troop sits on a cell border / vertex gap.
+            index = TryGetCellIndexByRadialSamples(onGridPlane);
+            if (index >= 0)
+                return index;
+
+            // 4) Nearest centroid (troop may be slightly outside TGS coverage).
             return FindNearestCellIndex(worldPos);
+        }
+
+        private int TryGetCellIndexByRadialSamples(Vector3 centerOnGridPlane)
+        {
+            // Radii in world units; keep cheap — only used when direct hit fails.
+            float[] radii = { 0.08f, 0.2f, 0.45f, 0.9f, 1.6f };
+            const int samplesPerRing = 8;
+
+            for (int r = 0; r < radii.Length; r++)
+            {
+                float radius = radii[r];
+                for (int s = 0; s < samplesPerRing; s++)
+                {
+                    float ang = (s / (float)samplesPerRing) * Mathf.PI * 2f;
+                    var sample = new Vector3(
+                        centerOnGridPlane.x + Mathf.Cos(ang) * radius,
+                        centerOnGridPlane.y,
+                        centerOnGridPlane.z + Mathf.Sin(ang) * radius);
+
+                    Cell cell = _tgs.CellGetAtPosition(sample, worldSpace: true);
+                    int index = _tgs.CellGetIndex(cell);
+                    if (index >= 0)
+                        return index;
+                }
+            }
+
+            return -1;
         }
 
         private int FindNearestCellIndex(Vector3 worldPos)
@@ -161,25 +196,37 @@ namespace Game.Navigation
                 }
             }
 
-            const float maxDist = 2.5f;
-            if (bestIndex < 0 || bestDistSq > maxDist * maxDist)
+            if (bestIndex < 0)
+                return -1;
+
+            // Allow any nearest cell within ~¾ of the larger TGS axis.
+            // Old hard cap (2.5) failed often when the marble drifted just outside the grid
+            // while the visual map (chunks) still looked walkable.
+            float gridExtent = Mathf.Max(
+                Mathf.Abs(_tgs.transform.lossyScale.x),
+                Mathf.Abs(_tgs.transform.lossyScale.y));
+            float maxDist = Mathf.Max(4f, gridExtent * 0.75f);
+            float bestDist = Mathf.Sqrt(bestDistSq);
+
+            if (bestDist > maxDist)
             {
                 if (_logPathResults)
                 {
                     Debug.LogWarning(
-                        $"{nameof(TgsNavigationPathfinder)}: No TGS cell near troop at {worldPos}. " +
-                        $"nearestDist={(bestIndex >= 0 ? Mathf.Sqrt(bestDistSq) : -1f):0.00}. " +
-                        "Check TGS position/scale vs map, and that marble is inside the grid.");
+                        $"{nameof(TgsNavigationPathfinder)}: Troop at {worldPos} is far from TGS " +
+                        $"(nearestDist={bestDist:0.00}, max={maxDist:0.00}). " +
+                        "Marble is outside Terrain Grid System coverage — move back onto the grid, " +
+                        "or enable KTGSFollowMarble.");
                 }
 
                 return -1;
             }
 
-            if (_logPathResults)
+            if (_logPathResults && bestDist > 0.5f)
             {
                 Debug.Log(
                     $"{nameof(TgsNavigationPathfinder)}: Start cell resolved via nearest centroid " +
-                    $"(cell={bestIndex}, dist={Mathf.Sqrt(bestDistSq):0.00}).");
+                    $"(cell={bestIndex}, dist={bestDist:0.00}).");
             }
 
             return bestIndex;
@@ -207,7 +254,8 @@ namespace Game.Navigation
                 return Fail(
                     NavigationPathStatus.InvalidStart,
                     $"Could not resolve start cell under troop at {originWorld}. " +
-                    "Troop may be outside the TGS grid bounds (check TGS transform scale/position vs map).");
+                    "Troop is outside Terrain Grid System coverage (visual map chunks can extend beyond TGS). " +
+                    "Move the troop back onto the grid area.");
             }
 
             if (destinationCellIndex < 0 || destinationCellIndex >= _tgs.cells.Count)
@@ -315,24 +363,44 @@ namespace Game.Navigation
         {
             blockedByBake = false;
 
-            if (IsBiomeLakeCell(cellIndex))
-                return true;
-
-            if (!_blockUsingBakedLake || _terrainQuery == null || _tgs == null)
+            if (cellIndex < 0 || _tgs == null || cellIndex >= _tgs.cells.Count)
                 return false;
 
-            if (cellIndex < 0 || cellIndex >= _tgs.cells.Count)
-                return false;
+            bool biomeLake = IsBiomeLakeCell(cellIndex);
+            bool hasBake = _blockUsingBakedLake && _terrainQuery != null;
+            bool bakeLake = hasBake && CellContainsBakedLake(cellIndex);
 
-            if (CellContainsBakedLake(cellIndex))
+            if (hasBake)
             {
-                blockedByBake = true;
-                return true;
+                // Prefer bake for passability — Voronoi Lake territory often covers mixed
+                // visual land. Only treat biome Lake as blocked when bake also agrees at centroid,
+                // or when bake majority already says lake.
+                if (bakeLake)
+                {
+                    blockedByBake = true;
+                    return true;
+                }
+
+                if (biomeLake)
+                {
+                    Vector3 centroid = _tgs.CellGetCentroid(cellIndex, worldSpace: true);
+                    if (IsWorldBlocked(centroid))
+                        return true;
+
+                    // Biome says Lake but centroid bake is land → treat as walkable.
+                    return false;
+                }
+
+                return false;
             }
 
-            return false;
+            return biomeLake;
         }
 
+        /// <summary>
+        /// True when a majority of bake samples inside the cell are lake/blocked.
+        /// (Any-sample used to false-positive mixed land/lake cells.)
+        /// </summary>
         private bool CellContainsBakedLake(int cellIndex)
         {
             if (_terrainQuery == null || _tgs == null)
@@ -342,26 +410,129 @@ namespace Game.Navigation
             if (cell == null)
                 return false;
 
+            int lakeVotes = 0;
+            int samples = 0;
+
             Vector3 centroid = _tgs.CellGetCentroid(cellIndex, worldSpace: true);
+            samples++;
             if (IsWorldBlocked(centroid))
-                return true;
+                lakeVotes++;
 
             var points = cell.region != null ? cell.region.points : null;
-            if (points == null || points.Count == 0)
-                return false;
-
-            int step = Mathf.Max(1, points.Count / 6);
-            for (int i = 0; i < points.Count; i += step)
+            if (points != null && points.Count > 0)
             {
-                Vector3 vertexWorld = _tgs.GetWorldSpacePosition(points[i]);
-
-                Vector3 sample = Vector3.Lerp(centroid, vertexWorld, 0.55f);
-                sample.y = centroid.y;
-                if (IsWorldBlocked(sample))
-                    return true;
+                int step = Mathf.Max(1, points.Count / 6);
+                for (int i = 0; i < points.Count; i += step)
+                {
+                    Vector3 vertexWorld = _tgs.GetWorldSpacePosition(points[i]);
+                    Vector3 sample = Vector3.Lerp(centroid, vertexWorld, 0.55f);
+                    sample.y = centroid.y;
+                    samples++;
+                    if (IsWorldBlocked(sample))
+                        lakeVotes++;
+                }
             }
 
-            return false;
+            if (samples <= 0)
+                return false;
+
+            // Majority — ties count as blocked to stay conservative near shores.
+            return lakeVotes * 2 >= samples;
+        }
+
+        /// <summary>
+        /// Resolve a walkable destination cell from a world click.
+        /// If the click is on land but the owning Voronoi cell is mixed/blocked, snap to nearest walkable cell.
+        /// </summary>
+        public int ResolveWalkableDestinationCell(Vector3 worldPos, out string failureReason)
+        {
+            failureReason = null;
+            ResolveRefs();
+
+            if (_tgs == null || _tgs.cells == null || _tgs.cells.Count == 0)
+            {
+                failureReason = "TerrainGridSystem missing.";
+                return -1;
+            }
+
+            // Reject only when the actual click point is lake/blocked.
+            if (_terrainQuery != null && IsWorldBlocked(worldPos))
+            {
+                failureReason = "Clicked point is Lake/blocked (impassable).";
+                return -1;
+            }
+
+            int cellIndex = TryGetCellIndexAtWorld(worldPos);
+            if (cellIndex >= 0 && !IsRoutingBlockedCell(cellIndex, out _))
+                return cellIndex;
+
+            int nearest = FindNearestWalkableCell(worldPos);
+            if (nearest >= 0)
+            {
+                if (_logPathResults)
+                {
+                    Debug.Log(
+                        $"{nameof(TgsNavigationPathfinder)}: Destination snapped from cell " +
+                        $"{cellIndex} → walkable cell {nearest} near {worldPos}.");
+                }
+
+                return nearest;
+            }
+
+            failureReason =
+                $"No walkable cell near click {worldPos} " +
+                $"(raw cell={cellIndex} was Lake/blocked).";
+            return -1;
+        }
+
+        public NavigationRoute FindRouteToWorld(Vector3 originWorld, Vector3 destinationWorld)
+        {
+            int destinationCellIndex = ResolveWalkableDestinationCell(destinationWorld, out string failReason);
+            if (destinationCellIndex < 0)
+            {
+                return Fail(
+                    NavigationPathStatus.DestinationBlocked,
+                    failReason ?? "Destination blocked.");
+            }
+
+            return FindRoute(originWorld, destinationCellIndex);
+        }
+
+        private int FindNearestWalkableCell(Vector3 worldPos)
+        {
+            if (_tgs == null || _tgs.cells == null)
+                return -1;
+
+            float bestDistSq = float.MaxValue;
+            int bestIndex = -1;
+            Vector3 flat = new Vector3(worldPos.x, 0f, worldPos.z);
+
+            float gridExtent = Mathf.Max(
+                Mathf.Abs(_tgs.transform.lossyScale.x),
+                Mathf.Abs(_tgs.transform.lossyScale.y));
+            float maxDist = Mathf.Max(3f, gridExtent * 0.35f);
+            float maxDistSq = maxDist * maxDist;
+
+            for (int i = 0; i < _tgs.cells.Count; i++)
+            {
+                if (_tgs.cells[i] == null)
+                    continue;
+
+                if (IsRoutingBlockedCell(i, out _))
+                    continue;
+
+                Vector3 centroid = _tgs.CellGetCentroid(i, worldSpace: true);
+                float dx = centroid.x - flat.x;
+                float dz = centroid.z - flat.z;
+                float dSq = dx * dx + dz * dz;
+                if (dSq < bestDistSq && dSq <= maxDistSq)
+                {
+                    bestDistSq = dSq;
+                    bestIndex = i;
+                }
+            }
+
+            return bestIndex;
         }
 
         private NavigationRoute DiagnoseFailure(Vector3 originWorld, int startCellIndex, int destinationCellIndex)

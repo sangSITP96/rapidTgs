@@ -1,6 +1,6 @@
 using TGS;
 using UnityEngine;
-using UnityEngine.EventSystems;
+using Game.UI;
 
 public class GridVisibilityController : MonoBehaviour
 {
@@ -65,7 +65,7 @@ public class GridVisibilityController : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
-            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            if (UiPointerUtility.IsPointerOverUi())
                 return;
             
             Ray ray = _camera.ScreenPointToRay(Input.mousePosition);

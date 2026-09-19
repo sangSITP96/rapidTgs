@@ -1,40 +1,60 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
+/// <summary>
+/// Weather preset buttons for Develop Mode → Environment.
+/// Applies presets in-place (no separate MenuWithWeather scene load).
+/// </summary>
 public class SceneMenuController : MonoBehaviour
 {
+    [SerializeField] private WeatherPresetApplier _presetApplier;
+
+    private void Awake()
+    {
+        if (_presetApplier == null)
+            _presetApplier = FindFirstObjectByType<WeatherPresetApplier>();
+    }
+
     public void LoadAllStacked()
     {
-        WeatherPresetSelection.CurrentPreset = WeatherTestPreset.AllStacked;
-        LoadGamePlayScene();
+        ApplyPreset(WeatherTestPreset.AllStacked);
     }
 
     public void LoadSnowOnly()
     {
-        WeatherPresetSelection.CurrentPreset = WeatherTestPreset.SnowOnly;
-        LoadGamePlayScene();
+        ApplyPreset(WeatherTestPreset.SnowOnly);
     }
-    
+
     public void LoadRainOnly()
     {
-        WeatherPresetSelection.CurrentPreset = WeatherTestPreset.RainOnly;
-        LoadGamePlayScene();
+        ApplyPreset(WeatherTestPreset.RainOnly);
     }
 
     public void LoadHeatOnly()
     {
-        WeatherPresetSelection.CurrentPreset = WeatherTestPreset.HeatOnly;
-        LoadGamePlayScene();
+        ApplyPreset(WeatherTestPreset.HeatOnly);
     }
 
     public void LoadGroundSnowOnly()
     {
-        WeatherPresetSelection.CurrentPreset = WeatherTestPreset.GroundSnowOnly;
-        LoadGamePlayScene();
+        ApplyPreset(WeatherTestPreset.GroundSnowOnly);
     }
 
-    private void LoadGamePlayScene()
+    /// <summary>Kept for MenuWithWeather scene; not shown in Develop Mode → Environment.</summary>
+    public void LoadFlexible()
     {
-        SceneManager.LoadScene("RapidTgsPrototype_main");
+        ApplyPreset(WeatherTestPreset.Flexible);
+    }
+
+    private void ApplyPreset(WeatherTestPreset preset)
+    {
+        WeatherPresetSelection.CurrentPreset = preset;
+
+        if (_presetApplier == null)
+            _presetApplier = FindFirstObjectByType<WeatherPresetApplier>();
+
+        if (_presetApplier != null)
+            _presetApplier.ApplyPresetNow(preset);
+        else
+            Debug.LogWarning($"{nameof(SceneMenuController)}: WeatherPresetApplier not found.");
     }
 }

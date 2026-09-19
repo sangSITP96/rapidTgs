@@ -1,6 +1,7 @@
 using UnityEngine;
 using Game.Core.WorldTime;
 using Game.Morale;
+using Game.UI;
 
 namespace Game.Travel
 {
@@ -25,7 +26,14 @@ namespace Game.Travel
         [Header("Debug Overlay (iPad / mobile readable)")]
         [SerializeField, Range(0.8f, 3f)] private float _overlayScale = 1.6f;
         [SerializeField] private int _baseFontSize = 18;
-        [SerializeField] private bool _showOverlay = true;
+        [Tooltip("Controlled from Develop Mode → Travel Debug. Keep off for Production.")]
+        [SerializeField] private bool _showOverlay;
+
+        public bool ShowOverlay
+        {
+            get => _showOverlay;
+            set => _showOverlay = value;
+        }
 
         private GUIStyle _boxStyle;
         private GUIStyle _labelStyle;
@@ -134,6 +142,9 @@ namespace Game.Travel
         private void OnGUI()
         {
             if (!_showOverlay || _travel == null)
+                return;
+
+            if (UiOverlayExclusive.Instance != null && !UiOverlayExclusive.Instance.IsDevelopBuild)
                 return;
 
             TravelRuntimeState s = _travel.RuntimeState;
