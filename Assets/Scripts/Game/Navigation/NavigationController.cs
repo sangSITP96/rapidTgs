@@ -7,18 +7,11 @@ using UnityEngine.EventSystems;
 
 namespace Game.Navigation
 {
-    /// <summary>
-    /// Phase 13 first version:
-    /// Destination select mode → TGS one valid route → approval → March Simulation.
-    /// </summary>
     [DefaultExecutionOrder(-20)]
     public sealed class NavigationController : MonoBehaviour
     {
         public static NavigationController Instance { get; private set; }
 
-        /// <summary>
-        /// When true, MarbleMovement must ignore click-to-move / CancelTravel.
-        /// </summary>
         public static bool IsDestinationSelectModeActive =>
             Instance != null && Instance._destinationSelectMode;
 
@@ -44,7 +37,6 @@ namespace Game.Navigation
 
         [Header("Touch / WebGL UI")]
         [SerializeField] private bool _showTouchControls = true;
-        [Tooltip("Minimum on-screen button height in pixels before DPI scale.")]
         [SerializeField] private float _touchButtonHeight = 56f;
 
         [Header("Approval UI (placeholder)")]
@@ -66,7 +58,6 @@ namespace Game.Navigation
         private GUIStyle _buttonStyle;
         private Texture2D _boxBg;
 
-        /// <summary>GUI-space rect covering nav touch controls (y-down). Updated in OnGUI.</summary>
         private Rect _navUiGuiRect;
 
         public bool DestinationSelectMode => _destinationSelectMode;
@@ -191,7 +182,6 @@ namespace Game.Navigation
 
             if (!active)
             {
-                // Leaving mode clears pending approval UI, not an in-progress march.
                 ClearPendingApproval(clearHighlights: true);
             }
 
@@ -282,7 +272,6 @@ namespace Game.Navigation
             if (_camera == null || _pathfinder == null)
                 return;
 
-            // Prefer explicit touch (iPad / WebGL); mouse still works on desktop.
             if (Input.touchCount > 0)
             {
                 Touch touch = Input.GetTouch(0);
@@ -388,7 +377,6 @@ namespace Game.Navigation
                 found = true;
             }
 
-            // Fallback: any collider on ground layer if streamer filter found nothing.
             if (!found && Physics.Raycast(ray, out hit, Mathf.Infinity, _groundLayer))
                 found = true;
 
@@ -506,7 +494,6 @@ namespace Game.Navigation
 
             if (_showTouchControls || _showApprovalUi)
             {
-                // Primary touch control: Plan March / Exit Plan
                 string planLabel = _destinationSelectMode ? "Exit Plan Mode" : "Plan March";
                 var planBtn = new Rect(left, top, width, btnH);
                 if (GUI.Button(planBtn, planLabel, _buttonStyle))
@@ -567,7 +554,6 @@ namespace Game.Navigation
                 contentBottom = panel.yMax;
             }
 
-            // Block map taps that land on this whole control column.
             _navUiGuiRect = new Rect(left - pad * 0.5f, pad * 0.5f, width + pad, contentBottom - pad * 0.5f + pad);
         }
     }

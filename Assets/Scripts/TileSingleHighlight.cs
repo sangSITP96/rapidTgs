@@ -71,7 +71,6 @@ public class TileSingleHighlight : MonoBehaviour
 
     private void HandlePointerInput()
     {
-        // Phase 13 destination select owns ground clicks while active.
         if (NavigationController.IsDestinationSelectModeActive)
             return;
 

@@ -1,8 +1,5 @@
 namespace Game.Travel
 {
-    /// <summary>
-    /// Gameplay surface types for travel. Trail overlays Road/Trail on top of biomes.
-    /// </summary>
     public enum TravelSurfaceType
     {
         Grassland = 0,

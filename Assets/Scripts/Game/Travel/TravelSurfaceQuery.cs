@@ -2,10 +2,6 @@ using UnityEngine;
 
 namespace Game.Travel
 {
-    /// <summary>
-    /// Converts WorldTerrainQuery + optional trail overlay into gameplay surface samples.
-    /// Travel systems should use this instead of baked/TGS internals.
-    /// </summary>
     public sealed class TravelSurfaceQuery : MonoBehaviour
     {
         [SerializeField] private WorldTerrainQuery _terrainQuery;
@@ -66,7 +62,6 @@ namespace Game.Travel
                 };
             }
 
-            // Trail overlay wins for movement when present and passable.
             if (_trailProvider != null &&
                 _trailProvider.TrySampleTrail(worldPos, out _) &&
                 _settings.IsPassable(TravelSurfaceType.RoadTrail))

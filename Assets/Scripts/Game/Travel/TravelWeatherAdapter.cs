@@ -2,10 +2,6 @@ using UnityEngine;
 
 namespace Game.Travel
 {
-    /// <summary>
-    /// Decouples Travel from WeatherManager internals.
-    /// Convention: movementMultiplier &lt; 1 slows; needsMultiplier &gt; 1 increases consumption.
-    /// </summary>
     public sealed class TravelWeatherAdapter : MonoBehaviour
     {
         [SerializeField] private WeatherManager _weatherManager;

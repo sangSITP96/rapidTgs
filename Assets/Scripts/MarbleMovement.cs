@@ -17,11 +17,9 @@ public class MarbleMovement : MonoBehaviour
     [SerializeField] private TerrainGridSystem _terrainGridSystem;
 
     [Header("Phase 12 Travel")]
-    [Tooltip("If assigned, click-move and travel-march will not fight over the marble.")]
     [SerializeField] private TroopTravelController _travelController;
 
     [Header("Click / Tap Move")]
-    [Tooltip("When false, tap/click no longer moves the marble. Use Navigation Plan March instead.")]
     [SerializeField] private bool _enableClickToMove = false;
 
     [Header("List Sliders")] [FormerlySerializedAs("_speedSlider")] [SerializeField]
@@ -189,7 +187,6 @@ public class MarbleMovement : MonoBehaviour
             _travelController.MarchControlStarted -= StopMoving;
     }
 
-    /// <summary>Stops click-to-move so TroopTravelController can own the marble.</summary>
     public void StopMoving()
     {
         _moving = false;
@@ -229,8 +226,6 @@ public class MarbleMovement : MonoBehaviour
         if (!_enableClickToMove)
             return;
 
-        // Phase 13: Navigation destination-select mode owns clicks.
-        // Do not cancel travel or start click-to-move while that mode is active.
         if (NavigationController.IsDestinationSelectModeActive)
             return;
 
@@ -242,8 +237,6 @@ public class MarbleMovement : MonoBehaviour
 
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
-                // Click-to-move takes over: cancel Phase 12 march so both systems
-                // do not write marble.position in the same frame (causes jitter).
                 if (_travelController != null && _travelController.IsDrivingMover)
                     _travelController.CancelTravel();
 
@@ -270,7 +263,6 @@ public class MarbleMovement : MonoBehaviour
     {
         if (!_moving) return;
 
-        // Travel march owns the transform while Status == Marching.
         if (_travelController != null && _travelController.IsDrivingMover)
         {
             StopMoving();

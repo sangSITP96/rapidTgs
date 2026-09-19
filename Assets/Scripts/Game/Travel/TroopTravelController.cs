@@ -6,11 +6,6 @@ using Game.Navigation;
 
 namespace Game.Travel
 {
-    /// <summary>
-    /// Phase 12 travel lifecycle + Phase 13 route consumption:
-    /// March → Make Camp → Rest → Resume March → Arrival.
-    /// Route march follows arc-length along the polyline (no look-ahead steering drift).
-    /// </summary>
     [DefaultExecutionOrder(0)]
     public sealed class TroopTravelController : MonoBehaviour
     {
@@ -124,8 +119,6 @@ namespace Game.Travel
                 _routeWaypoints.Add(finalDest);
             }
 
-            // Optional curve smoothing for stride corners. Uniform Catmull-Rom can overshoot;
-            // keep samples dense so arc-length follow stays faithful to the approved path.
             if (_settings.ResampleRouteWithCatmullRom && _routeWaypoints.Count >= 3)
             {
                 ResampleRouteCatmullRom(_routeWaypoints, _resampleBuffer, _settings.SmoothPathSampleSpacing);
@@ -137,7 +130,6 @@ namespace Game.Travel
             FindClosestPathDistance(start, out _pathDistance, out int startIndex);
             _pathDistance = Mathf.Clamp(_pathDistance, 0f, _totalPathLength);
 
-            // Snap onto the path immediately so the first frames don't lerp from off-path.
             Vector3 onPath = SamplePathAtDistance(_pathDistance, out startIndex);
             onPath.y = start.y;
             ApplyPosition(onPath);
@@ -198,7 +190,6 @@ namespace Game.Travel
                 return;
             }
 
-            // Re-sync path distance from current world position after camping.
             if (_state.HasRoute && _routeWaypoints.Count > 1)
             {
                 FindClosestPathDistance(
@@ -295,7 +286,6 @@ namespace Game.Travel
 
             float remaining = Mathf.Max(0f, _totalPathLength - _pathDistance);
 
-            // Finish only when this step actually reaches the end — no long-range teleport snap.
             if (remaining <= 0.001f || stepBudget >= remaining)
             {
                 _pathDistance = _totalPathLength;
@@ -319,8 +309,6 @@ namespace Game.Travel
             TravelSurfaceSample surface = SampleSurface(next);
             if (!surface.IsPassable)
             {
-                // Lake pocket on an otherwise valid route: skip forward along the path to the
-                // next passable sample instead of freezing forever on a mixed-biome cell edge.
                 if (TrySkipImpassablePathSegment(current.y, previousDistance, stepBudget, out Vector3 skipTo, out int skipSegment, out float skipDistance))
                 {
                     ApplyPosition(skipTo);

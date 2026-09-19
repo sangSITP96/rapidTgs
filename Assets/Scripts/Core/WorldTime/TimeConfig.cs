@@ -15,10 +15,8 @@ namespace Game.Core.WorldTime
         [Range(0, 59)] public int StartSecond = 0;
 
         [Header("Optional Limits")]
-        [Tooltip("If true, TotalGameSeconds wraps each day. Prefer false + AllowBeyond24Hours for multi-day travel.")]
         public bool Wrap24Hours = false;
 
-        [Tooltip("If false, time stops at 24h. Prefer true for Phase 12 multi-day marches.")]
         public bool AllowBeyond24Hours = true;
 
         [Header("Day / Night Transitions (Game Minutes)")]

@@ -4,11 +4,6 @@ using UnityEngine;
 
 namespace Game.Navigation
 {
-    /// <summary>
-    /// Encapsulates Kronnect TGS cell pathfinding for Phase 13.
-    /// Blocking: territory Lake biome AND/OR baked lake at cell center (matches March query).
-    /// March waypoints follow every path cell by default so stride chords cannot cut lakes.
-    /// </summary>
     public sealed class TgsNavigationPathfinder : MonoBehaviour
     {
         [Header("Refs")]
@@ -17,20 +12,15 @@ namespace Game.Navigation
         [SerializeField] private WorldTerrainQuery _terrainQuery;
 
         [Header("Pathfinding")]
-        [Tooltip("Passed to TGS FindPath / pathFindingMaxSteps. 0 = use TGS global default.")]
         [SerializeField] private int _pathFindingMaxSteps = 4000;
 
-        [Tooltip("When FindPath fails, retry once with this cap to detect max-steps vs no-route.")]
         [SerializeField] private int _diagnosticMaxSteps = 12000;
 
-        [Tooltip("Also block cells whose center is lake/blocked in baked WorldTerrainQuery.")]
         [SerializeField] private bool _blockUsingBakedLake = true;
 
         [Header("March Waypoints")]
-        [Tooltip("Keep every Nth path cell as a march waypoint (1 = every cell). Higher values never skip across blocked cells.")]
         [SerializeField, Min(1)] private int _waypointStride = 1;
 
-        [Tooltip("Skip waypoints closer than this (world units) only when the skipped segment stays on land. 0 = off.")]
         [SerializeField, Min(0f)] private float _minWaypointSpacing = 0f;
 
         [Header("Debug")]
@@ -77,9 +67,6 @@ namespace Game.Navigation
             _traversalSynced = false;
         }
 
-        /// <summary>
-        /// Sync Cell.canCross from biome Lake + optional baked lake. Call before FindPath.
-        /// </summary>
         public void SyncTraversalFromBiomes(bool force = false)
         {
             ResolveRefs();
@@ -133,13 +120,11 @@ namespace Game.Navigation
             if (_tgs == null || _tgs.cells == null || _tgs.cells.Count == 0)
                 return -1;
 
-            // 1) Direct query at troop position.
             Cell cell = _tgs.CellGetAtPosition(worldPos, worldSpace: true);
             int index = _tgs.CellGetIndex(cell);
             if (index >= 0)
                 return index;
 
-            // 2) Retry on the TGS plane (Y often differs from marble height).
             Vector3 onGridPlane = worldPos;
             onGridPlane.y = _tgs.transform.position.y;
             cell = _tgs.CellGetAtPosition(onGridPlane, worldSpace: true);
@@ -147,7 +132,6 @@ namespace Game.Navigation
             if (index >= 0)
                 return index;
 
-            // 3) Fallback: nearest cell centroid in XZ (handles edge / slightly-outside-grid cases).
             return FindNearestCellIndex(worldPos);
         }
 
@@ -177,7 +161,6 @@ namespace Game.Navigation
                 }
             }
 
-            // Reject absurd matches (troop far outside the grid).
             const float maxDist = 2.5f;
             if (bestIndex < 0 || bestDistSq > maxDist * maxDist)
             {
@@ -275,7 +258,6 @@ namespace Game.Navigation
             if (pathLength <= 0 || pathCells.Count == 0)
                 return DiagnoseFailure(originWorld, startCellIndex, destinationCellIndex);
 
-            // Guard: never approve a path that still contains blocked cells.
             if (!ValidatePathCells(pathCells, startCellIndex, out int badCell))
             {
                 return Fail(
@@ -303,7 +285,7 @@ namespace Game.Navigation
             for (int i = 0; i < pathCells.Count; i++)
             {
                 int cellIndex = pathCells[i];
-                // Start may be ignored by FindPath canCross; still reject if destination-side lakes slip in.
+
                 if (cellIndex == startCellIndex)
                     continue;
 
@@ -342,9 +324,6 @@ namespace Game.Navigation
             if (cellIndex < 0 || cellIndex >= _tgs.cells.Count)
                 return false;
 
-            // Irregular cells near lakes often contain mixed bake pixels (lake + land)
-            // even when territory biome is Grassland. Sample several interior points —
-            // if ANY is lake/blocked, treat the whole cell as impassable for routing.
             if (CellContainsBakedLake(cellIndex))
             {
                 blockedByBake = true;
@@ -354,10 +333,6 @@ namespace Game.Navigation
             return false;
         }
 
-        /// <summary>
-        /// True if centroid or interior samples of this cell hit baked lake.
-        /// Geometric center is intentionally avoided — it can fall outside the polygon into a neighbour lake.
-        /// </summary>
         private bool CellContainsBakedLake(int cellIndex)
         {
             if (_terrainQuery == null || _tgs == null)
@@ -371,7 +346,6 @@ namespace Game.Navigation
             if (IsWorldBlocked(centroid))
                 return true;
 
-            // Sample toward a few polygon vertices (stays inside convex-ish voronoi cells).
             var points = cell.region != null ? cell.region.points : null;
             if (points == null || points.Count == 0)
                 return false;
@@ -380,7 +354,7 @@ namespace Game.Navigation
             for (int i = 0; i < points.Count; i += step)
             {
                 Vector3 vertexWorld = _tgs.GetWorldSpacePosition(points[i]);
-                // Pull toward centroid so we stay inside the cell, away from shared lake borders.
+
                 Vector3 sample = Vector3.Lerp(centroid, vertexWorld, 0.55f);
                 sample.y = centroid.y;
                 if (IsWorldBlocked(sample))
@@ -461,8 +435,6 @@ namespace Game.Navigation
                 PathCost = totalCost
             };
 
-            // Cell-center chords can clip lake even when both cells are land.
-            // Use centroids (inside polygon) + shared-edge gate points between neighbours.
             if (_waypointStride > 1 && _logPathResults)
             {
                 Debug.Log(
@@ -488,7 +460,6 @@ namespace Game.Navigation
                 }
                 else if (SegmentCrossesBlockedTerrain(previousPoint, centroid))
                 {
-                    // Origin → first cell: nudge through first-cell interior if the chord clips lake.
                     Vector3 safe = Vector3.Lerp(previousPoint, centroid, 0.35f);
                     if (!IsWorldBlocked(safe))
                         AppendWaypoint(route.Waypoints, safe);
@@ -499,7 +470,6 @@ namespace Game.Navigation
                 previousCell = cellIndex;
             }
 
-            // Final pass: drop / nudge any waypoint that still sits on baked lake.
             SanitizeWaypointsOffLake(route.Waypoints);
 
             if (route.Waypoints.Count == 1)
@@ -523,7 +493,6 @@ namespace Game.Navigation
                 if (!IsWorldBlocked(waypoints[i]))
                     continue;
 
-                // Prefer previous land waypoint; else next land; else nudge toward previous.
                 Vector3 fixedPos = waypoints[i];
                 bool fixedOk = false;
 
@@ -559,7 +528,6 @@ namespace Game.Navigation
                     waypoints[i] = fixedPos;
             }
 
-            // Remove consecutive duplicates after nudging.
             for (int i = waypoints.Count - 1; i > 0; i--)
             {
                 if (HorizontalDistanceSq(waypoints[i], waypoints[i - 1]) < 0.0001f)
@@ -575,10 +543,8 @@ namespace Game.Navigation
             Vector3 toCentroid,
             float y)
         {
-            // Always prefer shared-border gate — avoids center-to-center lake clips.
             if (TryGetSharedEdgeGate(fromCell, toCell, y, out Vector3 gate))
             {
-                // If gate itself sits on a lake tip (3-cell junction), pull into each land cell.
                 if (IsWorldBlocked(gate))
                 {
                     Vector3 gateInFrom = Vector3.Lerp(gate, fromPoint, 0.3f);
@@ -596,7 +562,6 @@ namespace Game.Navigation
                 return;
             }
 
-            // Fallback when shared edge isn't found: densify and keep land samples only.
             if (!SegmentCrossesBlockedTerrain(fromPoint, toCentroid))
                 return;
 
@@ -648,7 +613,6 @@ namespace Game.Navigation
                 return true;
             }
 
-            // No full shared edge — use average of shared vertices if any.
             Vector2 sum = Vector2.zero;
             int sharedCount = 0;
             for (int i = 0; i < pa.Count; i++)
@@ -719,7 +683,6 @@ namespace Game.Navigation
 
         private Vector3 GetCellWorldPosition(int cellIndex, float preserveY)
         {
-            // Centroid stays inside irregular polygons; geometric center can fall outside near lakes.
             Vector3 pos = _tgs.CellGetCentroid(cellIndex, worldSpace: true);
             pos.y = preserveY;
             return pos;

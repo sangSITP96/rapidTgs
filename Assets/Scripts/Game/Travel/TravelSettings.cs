@@ -6,26 +6,19 @@ namespace Game.Travel
     public sealed class TravelSettings : ScriptableObject
     {
         [Header("Base March")]
-        [Tooltip("World units traveled per game hour at 1.0x movement modifier.")]
         [Min(0.01f)] public float BaseMarchSpeedUnitsPerGameHour = 12f;
 
-        [Tooltip("Arrival distance threshold in world units.")]
         [Min(0.01f)] public float ArrivalDistanceThreshold = 0.15f;
 
         [Header("Route Follow Smoothing")]
-        [Tooltip("Steer toward a point ahead on the route instead of the next stride corner.")]
         public bool EnableRouteLookAhead = true;
 
-        [Tooltip("How far ahead (world units) to aim along the polyline. Higher = smoother corners.")]
         [Min(0.05f)] public float RouteLookAheadDistance = 0.55f;
 
-        [Tooltip("Max turn rate in degrees per world unit traveled. Lower = softer turns.")]
         [Min(1f)] public float RouteMaxTurnDegreesPerWorldUnit = 140f;
 
-        [Tooltip("Rebuild sparse stride waypoints into a Catmull-Rom curve before march. Can overshoot sharp corners — leave off for maximum path fidelity.")]
         public bool ResampleRouteWithCatmullRom = false;
 
-        [Tooltip("Spacing between Catmull-Rom samples (world units).")]
         [Min(0.02f)] public float SmoothPathSampleSpacing = 0.1f;
 
         [Header("Surface Movement Modifiers")]
@@ -33,7 +26,6 @@ namespace Game.Travel
         [Min(0f)] public float ForestMovementModifier = 0.70f;
         [Min(0f)] public float MountainMovementModifier = 0.45f;
         [Min(0f)] public float RoadTrailMovementModifier = 1.25f;
-        [Tooltip("Lake/Water is impassable. Kept for clarity; blocked surfaces use 0.")]
         [Min(0f)] public float LakeMovementModifier = 0f;
 
         [Header("Surface Passability")]
@@ -44,7 +36,6 @@ namespace Game.Travel
         public bool LakePassable = false;
 
         [Header("Direct Terrain Needs Penalties (optional)")]
-        [Tooltip("If false, terrain only slows travel (longer time => more natural needs drain).")]
         public bool EnableDirectTerrainNeedsPenalty = false;
 
         [Min(0f)] public float GrasslandNeedsModifier = 1f;
@@ -59,7 +50,6 @@ namespace Game.Travel
         [Min(0f)] public float MarchFoodConsumptionPerHour = 5f;
 
         [Header("Needs — Resting (per game hour)")]
-        [Tooltip("Sleep restored while resting.")]
         [Min(0f)] public float RestSleepRestorePerHour = 12f;
         [Min(0f)] public float RestWaterConsumptionPerHour = 2f;
         [Min(0f)] public float RestFoodConsumptionPerHour = 2f;
@@ -72,7 +62,6 @@ namespace Game.Travel
         [Header("Trail Experiment")]
         public TrailMode TrailMode = TrailMode.None;
 
-        [Tooltip("Half-width in world units used later by border/crossing trail providers.")]
         [Min(0.01f)] public float TrailSampleHalfWidth = 0.35f;
 
         public float GetMovementModifier(TravelSurfaceType type)

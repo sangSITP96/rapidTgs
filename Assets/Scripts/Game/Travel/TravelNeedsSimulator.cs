@@ -5,10 +5,6 @@ using Game.Morale;
 
 namespace Game.Travel
 {
-    /// <summary>
-    /// Applies Sleep/Food/Water consume/restore from travel status using game time.
-    /// Does not own morale stats — always writes through TroopMoraleSystem.
-    /// </summary>
     [DefaultExecutionOrder(50)]
     public sealed class TravelNeedsSimulator : MonoBehaviour
     {

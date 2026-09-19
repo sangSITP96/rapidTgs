@@ -4,9 +4,6 @@ using Game.Morale;
 
 namespace Game.Travel
 {
-    /// <summary>
-    /// Prototype-only manual controls for Phase 12 travel bones. Not final UI.
-    /// </summary>
     public sealed class TravelDebugController : MonoBehaviour
     {
         [SerializeField] private TroopTravelController _travel;
@@ -143,7 +140,6 @@ namespace Game.Travel
             if (s == null)
                 return;
 
-            // Scale up on tablets / high-DPI so text stays readable.
             float dpiScale = Screen.dpi > 0f ? Mathf.Clamp(Screen.dpi / 160f, 1f, 2.5f) : 1f;
             float heightScale = Mathf.Clamp(Screen.height / 800f, 1f, 2.2f);
             float scale = Mathf.Max(dpiScale, heightScale) * _overlayScale;
