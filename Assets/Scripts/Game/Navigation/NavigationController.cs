@@ -92,7 +92,6 @@ namespace Game.Navigation
             if (UiOverlayExclusive.IsPlanMarchBlocked)
                 return;
 
-            // While Approve/Cancel is up, never treat clicks as destination picks.
             if (_awaitingApproval)
                 return;
 

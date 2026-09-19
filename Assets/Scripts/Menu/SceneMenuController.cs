@@ -1,9 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// Weather preset buttons for Develop Mode → Environment.
-/// Applies presets in-place (no separate MenuWithWeather scene load).
-/// </summary>
 public class SceneMenuController : MonoBehaviour
 {
     [SerializeField] private WeatherPresetApplier _presetApplier;
@@ -39,7 +35,6 @@ public class SceneMenuController : MonoBehaviour
         ApplyPreset(WeatherTestPreset.GroundSnowOnly);
     }
 
-    /// <summary>Kept for MenuWithWeather scene; not shown in Develop Mode → Environment.</summary>
     public void LoadFlexible()
     {
         ApplyPreset(WeatherTestPreset.Flexible);

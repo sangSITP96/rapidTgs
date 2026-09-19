@@ -120,13 +120,11 @@ namespace Game.Navigation
             if (_tgs == null || _tgs.cells == null || _tgs.cells.Count == 0)
                 return -1;
 
-            // 1) Direct query at position.
             Cell cell = _tgs.CellGetAtPosition(worldPos, worldSpace: true);
             int index = _tgs.CellGetIndex(cell);
             if (index >= 0)
                 return index;
 
-            // 2) Retry on the TGS plane (marble Y often differs from grid plane).
             Vector3 onGridPlane = worldPos;
             onGridPlane.y = _tgs.transform.position.y;
             cell = _tgs.CellGetAtPosition(onGridPlane, worldSpace: true);
@@ -134,18 +132,15 @@ namespace Game.Navigation
             if (index >= 0)
                 return index;
 
-            // 3) Small radial samples — helps when troop sits on a cell border / vertex gap.
             index = TryGetCellIndexByRadialSamples(onGridPlane);
             if (index >= 0)
                 return index;
 
-            // 4) Nearest centroid (troop may be slightly outside TGS coverage).
             return FindNearestCellIndex(worldPos);
         }
 
         private int TryGetCellIndexByRadialSamples(Vector3 centerOnGridPlane)
         {
-            // Radii in world units; keep cheap — only used when direct hit fails.
             float[] radii = { 0.08f, 0.2f, 0.45f, 0.9f, 1.6f };
             const int samplesPerRing = 8;
 
@@ -199,9 +194,6 @@ namespace Game.Navigation
             if (bestIndex < 0)
                 return -1;
 
-            // Allow any nearest cell within ~¾ of the larger TGS axis.
-            // Old hard cap (2.5) failed often when the marble drifted just outside the grid
-            // while the visual map (chunks) still looked walkable.
             float gridExtent = Mathf.Max(
                 Mathf.Abs(_tgs.transform.lossyScale.x),
                 Mathf.Abs(_tgs.transform.lossyScale.y));
@@ -372,9 +364,6 @@ namespace Game.Navigation
 
             if (hasBake)
             {
-                // Prefer bake for passability — Voronoi Lake territory often covers mixed
-                // visual land. Only treat biome Lake as blocked when bake also agrees at centroid,
-                // or when bake majority already says lake.
                 if (bakeLake)
                 {
                     blockedByBake = true;
@@ -387,7 +376,6 @@ namespace Game.Navigation
                     if (IsWorldBlocked(centroid))
                         return true;
 
-                    // Biome says Lake but centroid bake is land → treat as walkable.
                     return false;
                 }
 
@@ -397,10 +385,6 @@ namespace Game.Navigation
             return biomeLake;
         }
 
-        /// <summary>
-        /// True when a majority of bake samples inside the cell are lake/blocked.
-        /// (Any-sample used to false-positive mixed land/lake cells.)
-        /// </summary>
         private bool CellContainsBakedLake(int cellIndex)
         {
             if (_terrainQuery == null || _tgs == null)
@@ -436,14 +420,9 @@ namespace Game.Navigation
             if (samples <= 0)
                 return false;
 
-            // Majority — ties count as blocked to stay conservative near shores.
             return lakeVotes * 2 >= samples;
         }
 
-        /// <summary>
-        /// Resolve a walkable destination cell from a world click.
-        /// If the click is on land but the owning Voronoi cell is mixed/blocked, snap to nearest walkable cell.
-        /// </summary>
         public int ResolveWalkableDestinationCell(Vector3 worldPos, out string failureReason)
         {
             failureReason = null;
@@ -455,7 +434,6 @@ namespace Game.Navigation
                 return -1;
             }
 
-            // Reject only when the actual click point is lake/blocked.
             if (_terrainQuery != null && IsWorldBlocked(worldPos))
             {
                 failureReason = "Clicked point is Lake/blocked (impassable).";

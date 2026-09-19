@@ -131,7 +131,6 @@ public class MarbleMovement : MonoBehaviour
 
         _camera = Camera.main;
 
-        // Legacy toggle button (optional). Develop Mode now opens PanelSpeedConfig.
         if (_onOffConfigPanelButton != null)
         {
             _onOffConfigPanelButton.onClick.RemoveAllListeners();
@@ -209,10 +208,6 @@ public class MarbleMovement : MonoBehaviour
         Move();
     }
 
-    /// <summary>
-    /// Fills Movement Settings sliders/texts from saved values.
-    /// Called when Develop Mode → Movement Settings is shown.
-    /// </summary>
     public void ApplyMovementSettingsToUi()
     {
         _neutralSpeedValue = PlayerPrefs.GetFloat("neutralspeed", _neutralSpeedValue);
@@ -231,9 +226,6 @@ public class MarbleMovement : MonoBehaviour
         UpdateSliderTexts();
     }
 
-    /// <summary>
-    /// Persists current slider values (same as closing the old config button).
-    /// </summary>
     public void SaveMovementSettingsFromUi()
     {
         if (_neutralSpeedSlider != null)
@@ -276,7 +268,6 @@ public class MarbleMovement : MonoBehaviour
         _wasDevelopPanelActive = active;
     }
 
-    // Legacy entry point if an old toggle button is still wired.
     private void OnOffSpeedConfigPanel()
     {
         if (_panelGameObject == null)
@@ -284,7 +275,6 @@ public class MarbleMovement : MonoBehaviour
 
         bool show = !_panelGameObject.activeSelf;
         _panelGameObject.SetActive(show);
-        // SyncDevelopPanelLifecycle handles apply/save + morale panel.
     }
 
     private void HandleTap()
@@ -651,8 +641,6 @@ public class MarbleMovement : MonoBehaviour
 
     public void BackToMenu()
     {
-        // Weather preset picker now lives in Develop Mode → Environment.
-        // Close the develop panel instead of loading MenuWithWeather.
         if (_panelGameObject != null)
             _panelGameObject.SetActive(false);
     }

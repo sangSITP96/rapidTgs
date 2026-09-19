@@ -5,9 +5,6 @@ using UnityEngine.UI;
 
 namespace Game.Navigation.UI
 {
-    /// <summary>
-    /// Scene uGUI for Plan March + Approve/Cancel. Wire refs in the Inspector / scene.
-    /// </summary>
     [DefaultExecutionOrder(10)]
     public sealed class NavigationHudView : MonoBehaviour
     {

@@ -6,10 +6,6 @@ using UnityEngine.UI;
 
 namespace Game.UI
 {
-    /// <summary>
-    /// Mutual exclusion: Event Log / Develop Mode vs Plan March HUD + destination select.
-    /// Develop Mode chrome is only shown when <see cref="AppBuildMode.Develop"/>.
-    /// </summary>
     [DefaultExecutionOrder(-30)]
     public sealed class UiOverlayExclusive : MonoBehaviour
     {
@@ -186,9 +182,6 @@ namespace Game.UI
         }
     }
 
-    /// <summary>
-    /// Reliable UI hit-test for both legacy Input and Input System UI modules.
-    /// </summary>
     public static class UiPointerUtility
     {
         private static readonly List<RaycastResult> Results = new List<RaycastResult>(16);

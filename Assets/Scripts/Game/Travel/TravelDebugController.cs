@@ -26,7 +26,6 @@ namespace Game.Travel
         [Header("Debug Overlay (iPad / mobile readable)")]
         [SerializeField, Range(0.8f, 3f)] private float _overlayScale = 1.6f;
         [SerializeField] private int _baseFontSize = 18;
-        [Tooltip("Controlled from Develop Mode → Travel Debug. Keep off for Production.")]
         [SerializeField] private bool _showOverlay;
 
         public bool ShowOverlay
