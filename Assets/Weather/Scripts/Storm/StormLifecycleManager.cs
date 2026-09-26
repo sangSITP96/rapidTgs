@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Core.WeatherGate;
 using Game.Core.WorldTime;
 using Game.Weather.Convergence;
 using UnityEngine;
@@ -95,6 +96,11 @@ namespace Game.Weather.Storm
        {
            if (!_enableRandomSpawn)
                return;
+
+           // Phase 14: never independently spawn storms outside scheduled thunderstorms.
+           if (!SeasonWeatherGate.AllowsStormFormation)
+               return;
+
            if (_storms.Count >= _maxActiveStorms)
                return;
 
@@ -143,11 +149,14 @@ namespace Game.Weather.Storm
                storm.view.UpdateState(storm.State);
            }
 
-            ColonyEventLogService.Instance?.AddSimple(
-                EventCategory.Weather,
-                "Storm Formed",
-                $"A storm formed near convergence "+
-                $"radius {storm.Radius:F2}, state {storm.State}");
+            if (!SeasonWeatherGate.SuppressStormEventLog)
+            {
+                ColonyEventLogService.Instance?.AddSimple(
+                    EventCategory.Weather,
+                    "Storm Formed",
+                    $"A storm formed near convergence "+
+                    $"radius {storm.Radius:F2}, state {storm.State}");
+            }
        }
 
        private double RollDurationHours()
@@ -223,11 +232,14 @@ namespace Game.Weather.Storm
            view.Initialize(storm.Radius);
            storm.view.UpdateState(storm.State);
 
-            ColonyEventLogService.Instance?.AddSimple(
-                EventCategory.Weather,
-                "Storm Formed",
-                $"A storm formed from clustered clouds ");
-           
+            if (!SeasonWeatherGate.SuppressStormEventLog)
+            {
+                ColonyEventLogService.Instance?.AddSimple(
+                    EventCategory.Weather,
+                    "Storm Formed",
+                    $"A storm formed from clustered clouds ");
+            }
+
            return storm;
        }
     }

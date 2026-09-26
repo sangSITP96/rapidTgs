@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Core.WeatherGate;
 using Game.Core.WorldTime;
 using Game.Weather.Cloud;
 using Game.Weather.Convergence;
@@ -71,6 +72,9 @@ namespace Game.Weather.Storm
 
         private void CheckAndConvertClouds(double now)
         {
+            if (!SeasonWeatherGate.AllowsStormFormation)
+                return;
+
             var convergencePoints = _convergenceManager.ActivePoints;
             if (convergencePoints == null || convergencePoints.Count == 0)
                 return;

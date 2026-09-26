@@ -24,7 +24,7 @@ MonoBehaviour:
   SummerNightFraction: 0.19
   AutumnNightFraction: 0.23
   WinterNightFraction: 0.25
-  GameDaysPerYear: 360
+  GameDaysPerYear: 28
   StartingSeasonIndex: 0
   EnableDailyClockDrift: 0
   ClockDriftGameSecondsPerRealDay: 3600

@@ -1,3 +1,4 @@
+using Game.Core.WeatherGate;
 using Game.Core.WorldTime;
 using Game.Weather.Cloud;
 using Game.Weather.Lake;
@@ -75,6 +76,10 @@ namespace Game.Weather.Fog
 
             if (_removeFogForMissingLakes)
                 RemoveFogForMissingLakes();
+
+            // Phase 14: fog VFX only while the season weather director allows it.
+            if (!SeasonWeatherGate.AllowsFog)
+                return;
 
             foreach (var lake in _lakeDetector.Lakes)
             {

@@ -37,8 +37,8 @@ namespace Game.Core.WorldTime
         [Range(0f, 1f)] public float WinterNightFraction = 0.25f;
 
         [Header("Season Calendar (Game Days)")]
-        [Tooltip("Length of one full year used only for daylight interpolation. Not a full season system.")]
-        [Min(4)] public int GameDaysPerYear = 360;
+        [Tooltip("Alpha: 28 = 4 seasons × 7 days. Keep synchronized with SeasonCalendarConfig / SeasonSystem.")]
+        [Min(4)] public int GameDaysPerYear = 28;
 
         [Tooltip("Season index at day 0: 0=Spring, 1=Summer, 2=Autumn, 3=Winter.")]
         [Range(0, 3)] public int StartingSeasonIndex = 0;

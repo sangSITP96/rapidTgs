@@ -1,3 +1,4 @@
+using Game.Core.WeatherGate;
 using Game.Core.WorldTime;
 using Game.Weather.Convergence;
 using Game.Weather.Core;
@@ -130,6 +131,10 @@ namespace Game.Weather.Cloud
         private void HandleSpawnTick(long tickIndex, double gameTime)
         {
             if(_lakeDetector == null || _lakeDetector.Lakes == null) return;
+
+            // Phase 14: ambient lake-effect clouds must not fight the season weather state.
+            if (!SeasonWeatherGate.AllowsAmbientClouds)
+                return;
 
             foreach (var lake in _lakeDetector.Lakes)
             {

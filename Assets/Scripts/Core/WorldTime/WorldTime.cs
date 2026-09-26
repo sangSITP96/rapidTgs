@@ -1,4 +1,5 @@
 using System;
+using Game.Seasons;
 using UnityEngine;
 
 namespace Game.Core.WorldTime
@@ -20,6 +21,7 @@ namespace Game.Core.WorldTime
 
         private int _lastClockH, _lastClockM, _lastClockS;
         private DayPhase _lastDayPhase = DayPhase.Day;
+        private SeasonSystem _seasonSystem;
 
         public const int SecondsPerMinute = 60;
         public const int SecondsPerHour = 3600;
@@ -192,7 +194,8 @@ namespace Game.Core.WorldTime
         }
 
         /// <summary>
-        /// Interpolated night fraction for the current game day (seasonal daylight only).
+        /// Interpolated night fraction for the current game day.
+        /// Driven by the authoritative SeasonSystem calendar when present (Alpha: 28-day year).
         /// </summary>
         public float GetCurrentNightFraction()
         {
@@ -204,11 +207,14 @@ namespace Game.Core.WorldTime
         }
 
         /// <summary>
-        /// Current primary season for daylight interpolation only (not a full season system).
+        /// Current season index. Prefer SeasonSystem (Phase 14 authority) when available.
         /// 0=Spring, 1=Summer, 2=Autumn, 3=Winter.
         /// </summary>
         public int GetCurrentSeasonIndex()
         {
+            if (TryGetSeasonSystem(out SeasonSystem seasons))
+                return (int)seasons.CurrentSeason;
+
             GetSeasonBlend(out int seasonA, out _, out _);
             return seasonA;
         }
@@ -225,7 +231,7 @@ namespace Game.Core.WorldTime
         }
 
         /// <summary>
-        /// 0..1 blend toward the next season (for debug / gradual daylight transition).
+        /// 0..1 blend toward the next season (daylight / debug).
         /// </summary>
         public float GetSeasonBlendProgress()
         {
@@ -235,6 +241,13 @@ namespace Game.Core.WorldTime
 
         private void GetSeasonBlend(out int seasonA, out int seasonB, out float t)
         {
+            if (TryGetSeasonSystem(out SeasonSystem seasons) &&
+                seasons.TryGetDaylightSeason(out seasonA, out t))
+            {
+                seasonB = (seasonA + 1) % 4;
+                return;
+            }
+
             if (_config == null)
             {
                 seasonA = 0;
@@ -243,17 +256,28 @@ namespace Game.Core.WorldTime
                 return;
             }
 
+            // Alpha default: 28-day year = 4 × 7-day seasons (same calendar as SeasonSystem).
             int daysPerYear = Mathf.Max(4, _config.GameDaysPerYear);
             float yearProgress = (GetDayIndex() + GetNormalizedDayProgress()) / daysPerYear;
             yearProgress = yearProgress - Mathf.Floor(yearProgress);
 
-            // Shift so day 0 starts at StartingSeasonIndex.
             float seasonProgress = yearProgress * 4f + _config.StartingSeasonIndex;
             seasonProgress = seasonProgress - Mathf.Floor(seasonProgress / 4f) * 4f;
 
             seasonA = Mathf.FloorToInt(seasonProgress) % 4;
             seasonB = (seasonA + 1) % 4;
             t = seasonProgress - Mathf.Floor(seasonProgress);
+        }
+
+        private bool TryGetSeasonSystem(out SeasonSystem seasons)
+        {
+            if (_seasonSystem == null)
+                _seasonSystem = SeasonSystem.Instance != null
+                    ? SeasonSystem.Instance
+                    : FindFirstObjectByType<SeasonSystem>();
+
+            seasons = _seasonSystem;
+            return seasons != null;
         }
 
         public void GetDaylightWindows(

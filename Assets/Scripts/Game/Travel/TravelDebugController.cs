@@ -1,6 +1,7 @@
 using UnityEngine;
 using Game.Core.WorldTime;
 using Game.Morale;
+using Game.Seasons;
 using Game.UI;
 
 namespace Game.Travel
@@ -165,9 +166,13 @@ namespace Game.Travel
             {
                 _worldTime.GetClock(out int h, out int m, out int sec);
                 float nightPct = _worldTime.GetCurrentNightFraction() * 100f;
+                SeasonSystem seasons = SeasonSystem.Instance;
+                string seasonLine = seasons != null
+                    ? $"Season:{seasons.CurrentSeason} day{seasons.DayInSeason + 1}/{seasons.DaysPerSeason} {seasons.GetDisplayTemperatureText()}"
+                    : $"Season:{_worldTime.GetCurrentSeasonName()} blend:{_worldTime.GetSeasonBlendProgress():0.00}";
                 clock =
                     $"{h:00}:{m:00}:{sec:00} Day{_worldTime.GetDayIndex()} {s.CurrentDayPhase}\n" +
-                    $"Season:{_worldTime.GetCurrentSeasonName()}  night:{nightPct:0.0}%  blend:{_worldTime.GetSeasonBlendProgress():0.00}";
+                    $"{seasonLine}  night:{nightPct:0.0}%";
             }
 
             string weatherLine =

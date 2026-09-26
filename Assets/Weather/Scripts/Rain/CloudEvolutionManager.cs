@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Core.WeatherGate;
 using Game.Weather.Cloud;
 using Game.Weather.Convergence;
 using UnityEngine;
@@ -61,12 +62,18 @@ namespace Game.Weather.Rain
             if (_cloudManager == null)
                 return;
 
+            if (!SeasonWeatherGate.AllowsRainEvolution)
+                return;
+
             _cloudManager.RequestEvolveToRain(cloudId);
         }
 
         private void QueueEligibleClusterClouds()
         {
             if (!_testEvolveClusterToRain)
+                return;
+
+            if (!SeasonWeatherGate.AllowsRainEvolution)
                 return;
 
             foreach (CloudEntity cloud in _cloudManager.ActiveClouds)

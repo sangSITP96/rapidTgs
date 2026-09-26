@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Game.Travel;
+using Game.Seasons.DebugTools;
 
 public sealed class DevelopModeController : MonoBehaviour
 {
@@ -17,6 +18,10 @@ public sealed class DevelopModeController : MonoBehaviour
     [Header("Travel Debug")]
     [SerializeField] private Toggle _showTravelOverlayToggle;
     [SerializeField] private TravelDebugController _travelDebug;
+
+    [Header("Environment / Seasons")]
+    [SerializeField] private Toggle _showSeasonOverlayToggle;
+    [SerializeField] private SeasonDebugController _seasonDebug;
 
     [Header("Movement Settings")]
     [SerializeField] private MarbleMovement _marbleMovement;
@@ -35,6 +40,9 @@ public sealed class DevelopModeController : MonoBehaviour
         if (_travelDebug == null)
             _travelDebug = FindFirstObjectByType<TravelDebugController>();
 
+        if (_seasonDebug == null)
+            _seasonDebug = FindFirstObjectByType<SeasonDebugController>();
+
         if (_marbleMovement == null)
             _marbleMovement = FindFirstObjectByType<MarbleMovement>();
 
@@ -47,6 +55,15 @@ public sealed class DevelopModeController : MonoBehaviour
                 _showTravelOverlayToggle.SetIsOnWithoutNotify(_travelDebug.ShowOverlay);
         }
 
+        if (_showSeasonOverlayToggle != null)
+        {
+            _showSeasonOverlayToggle.onValueChanged.RemoveListener(SetSeasonOverlayVisible);
+            _showSeasonOverlayToggle.onValueChanged.AddListener(SetSeasonOverlayVisible);
+
+            if (_seasonDebug != null)
+                _showSeasonOverlayToggle.SetIsOnWithoutNotify(_seasonDebug.ShowOverlay);
+        }
+
         SetMode(_defaultMode);
     }
 
@@ -54,6 +71,9 @@ public sealed class DevelopModeController : MonoBehaviour
     {
         if (_showTravelOverlayToggle != null)
             _showTravelOverlayToggle.onValueChanged.RemoveListener(SetTravelOverlayVisible);
+
+        if (_showSeasonOverlayToggle != null)
+            _showSeasonOverlayToggle.onValueChanged.RemoveListener(SetSeasonOverlayVisible);
     }
 
     public void SetMovementMode()
@@ -80,6 +100,15 @@ public sealed class DevelopModeController : MonoBehaviour
             _travelDebug.ShowOverlay = visible;
     }
 
+    public void SetSeasonOverlayVisible(bool visible)
+    {
+        if (_seasonDebug == null)
+            _seasonDebug = FindFirstObjectByType<SeasonDebugController>();
+
+        if (_seasonDebug != null)
+            _seasonDebug.ShowOverlay = visible;
+    }
+
     public void SetMode(ModeType mode)
     {
         if (_currentMode == ModeType.Movement && mode != ModeType.Movement)
@@ -99,12 +128,16 @@ public sealed class DevelopModeController : MonoBehaviour
         if (mode == ModeType.Movement)
             _marbleMovement?.ApplyMovementSettingsToUi();
 
+        // Season overlay is most useful while inspecting Environment.
+        if (_seasonDebug != null && mode == ModeType.Environment && _showSeasonOverlayToggle == null)
+            _seasonDebug.ShowOverlay = true;
+
         if (_contentTitle != null)
         {
             _contentTitle.text = mode switch
             {
                 ModeType.Movement => "Movement Settings",
-                ModeType.Environment => "Environment",
+                ModeType.Environment => "Environment / Seasons",
                 ModeType.TravelDebug => "Travel Debug",
                 _ => "Develop Mode"
             };
