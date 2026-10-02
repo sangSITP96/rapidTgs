@@ -7,6 +7,7 @@ namespace Game.Core.WorldTime
     public class WorldTime : MonoBehaviour
     {
         [SerializeField] private TimeConfig _config;
+        [SerializeField] private SeasonSystem _seasonSystem;
 
         public TimeConfig Config => _config;
 
@@ -21,8 +22,6 @@ namespace Game.Core.WorldTime
 
         private int _lastClockH, _lastClockM, _lastClockS;
         private DayPhase _lastDayPhase = DayPhase.Day;
-        private SeasonSystem _seasonSystem;
-
         public const int SecondsPerMinute = 60;
         public const int SecondsPerHour = 3600;
         public const int SecondsPerDay = 86400;
@@ -271,11 +270,6 @@ namespace Game.Core.WorldTime
 
         private bool TryGetSeasonSystem(out SeasonSystem seasons)
         {
-            if (_seasonSystem == null)
-                _seasonSystem = SeasonSystem.Instance != null
-                    ? SeasonSystem.Instance
-                    : FindFirstObjectByType<SeasonSystem>();
-
             seasons = _seasonSystem;
             return seasons != null;
         }

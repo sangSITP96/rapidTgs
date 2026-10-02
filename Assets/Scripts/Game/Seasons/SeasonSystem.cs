@@ -73,18 +73,10 @@ namespace Game.Seasons
             Instance = this;
 
             if (_worldTime == null)
-                _worldTime = FindFirstObjectByType<WorldTime>();
+                Debug.LogError($"{nameof(SeasonSystem)}: assign {nameof(WorldTime)} on the prefab/scene instance.");
 
             if (_calendar == null)
-            {
-                _calendar = ScriptableObject.CreateInstance<SeasonCalendarConfig>();
-                _calendar.hideFlags = HideFlags.HideAndDontSave;
-                _calendar.DaysPerSeason = 7;
-                _calendar.GameDaysPerYear = 28;
-                _calendar.StartingSeason = SeasonId.Spring;
-                _calendar.DayZeroWeekday = 0;
-                _calendar.SeasonChangeWeekday = 0;
-            }
+                Debug.LogError($"{nameof(SeasonSystem)}: assign {nameof(SeasonCalendarConfig)} on the prefab.");
 
             SyncTimeConfigYearLength();
             EnsureDefinitions();
@@ -93,9 +85,6 @@ namespace Game.Seasons
 
         private void OnEnable()
         {
-            if (_worldTime == null)
-                _worldTime = FindFirstObjectByType<WorldTime>();
-
             if (_worldTime != null)
                 _worldTime.OnTimeAdvanced += HandleTimeAdvanced;
         }
@@ -276,21 +265,9 @@ namespace Game.Seasons
 
         public void ForceSeason(SeasonId season)
         {
-            _hasForcedSeason = true;
-            _forcedSeason = season;
-            PreviousSeason = _currentSeason;
-            _currentSeason = season;
-            RollTransitionDuration();
-            RefreshFromWorldTime(forceEvents: false);
-            OnSeasonChanged?.Invoke(PreviousSeason, season);
-            OnSeasonVisualHook?.Invoke();
-            if (_logSeasonChanges)
-            {
-                ColonyEventLogService.Instance?.AddSimple(
-                    EventCategory.System,
-                    "Season Changed",
-                    $"{PreviousSeason} → {season} (forced)");
-            }
+            // Jump the clock to this season's start. Pinning CurrentSeason without
+            // moving WorldTime would make +Day / +7 Days leave the season stuck.
+            JumpToSeasonStart(season);
         }
 
         public void ClearForcedSeason()

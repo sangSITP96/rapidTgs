@@ -15,12 +15,11 @@ namespace Game.Seasons.DebugTools
         [SerializeField] private WorldTime _worldTime;
 
         [Header("Overlay")]
-        [SerializeField] private bool _showOverlay = true;
+        [SerializeField] private bool _showOverlay;
         [SerializeField, Range(0.8f, 3f)] private float _overlayScale = 1.35f;
         [SerializeField] private int _baseFontSize = 16;
 
-        [Header("Hotkeys (Play Mode, Develop only)")]
-        [SerializeField] private KeyCode _toggleOverlayKey = KeyCode.F8;
+        [Header("Hotkeys (only while this overlay is open)")]
         [SerializeField] private KeyCode _advanceHourKey = KeyCode.RightBracket;
         [SerializeField] private KeyCode _advanceDayKey = KeyCode.LeftBracket;
 
@@ -34,22 +33,9 @@ namespace Game.Seasons.DebugTools
             set => _showOverlay = value;
         }
 
-        private void Awake()
-        {
-            ResolveRefs();
-        }
-
         private void Update()
         {
-            if (!IsDevelop())
-                return;
-
-            ResolveRefs();
-
-            if (Input.GetKeyDown(_toggleOverlayKey))
-                _showOverlay = !_showOverlay;
-
-            if (_seasonSystem == null)
+            if (!_showOverlay || !IsDevelop() || _seasonSystem == null)
                 return;
 
             if (Input.GetKeyDown(_advanceHourKey))
@@ -57,16 +43,6 @@ namespace Game.Seasons.DebugTools
 
             if (Input.GetKeyDown(_advanceDayKey))
                 _seasonSystem.AdvanceGameDays(1f);
-        }
-
-        private void ResolveRefs()
-        {
-            if (_seasonSystem == null)
-                _seasonSystem = SeasonSystem.Instance ?? FindFirstObjectByType<SeasonSystem>();
-            if (_director == null)
-                _director = SeasonWeatherDirector.Instance ?? FindFirstObjectByType<SeasonWeatherDirector>();
-            if (_worldTime == null)
-                _worldTime = FindFirstObjectByType<WorldTime>();
         }
 
         private static bool IsDevelop()
@@ -112,7 +88,6 @@ namespace Game.Seasons.DebugTools
 
         public void Force(SeasonId season)
         {
-            ResolveRefs();
             _seasonSystem?.ForceSeason(season);
             _director?.RebuildScheduleIfNeeded(force: true);
             if (_worldTime != null)
@@ -121,7 +96,6 @@ namespace Game.Seasons.DebugTools
 
         public void DebugTriggerAllowedWeather(SeasonWeatherKind kind)
         {
-            ResolveRefs();
             _director?.DebugForceWeather(kind, 2f);
         }
 
@@ -185,9 +159,6 @@ namespace Game.Seasons.DebugTools
                     sb.Append("(none)");
                 sb.AppendLine();
             }
-
-            sb.AppendLine("F8 overlay | [ -1 day | ] +1 hour");
-            sb.AppendLine("ContextMenu: Force/Jump seasons, advance time");
 
             float pad = 12f * scale;
             float width = Mathf.Clamp(Screen.width * 0.42f, 360f * scale, Screen.width - pad * 2f);

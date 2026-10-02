@@ -13,9 +13,6 @@ namespace Game.Seasons
 
         private void OnEnable()
         {
-            if (_seasonSystem == null)
-                _seasonSystem = SeasonSystem.Instance ?? FindFirstObjectByType<SeasonSystem>();
-
             if (_seasonSystem != null)
             {
                 _seasonSystem.OnSeasonChanged += HandleSeasonChanged;

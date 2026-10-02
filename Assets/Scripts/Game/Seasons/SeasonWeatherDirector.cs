@@ -29,6 +29,11 @@ namespace Game.Seasons
         [SerializeField] private StormLifecycleManager _stormLifecycle;
         [SerializeField] private CloudEvolutionManager _cloudEvolution;
 
+        [Header("Thunderstorm VFX")]
+        [SerializeField] private GameObject _thunderstormVfxPrefab;
+        [SerializeField] private Transform _thunderstormVisualParent;
+        [SerializeField] private float _thunderstormVisualHeight = 5f;
+
         [Header("Logging")]
         [SerializeField] private bool _logWeatherChanges = true;
 
@@ -40,6 +45,7 @@ namespace Game.Seasons
         private SeasonWeatherScheduleEntry _debugOverride;
         private int _builtForAbsoluteSeason = int.MinValue;
         private bool _suppressStormEventLog;
+        private GameObject _activeThunderstormVfx;
 
         public SeasonWeatherKind CurrentWeatherKind => _currentKind;
         public SeasonWeatherScheduleEntry ActiveEntry => _activeEntry;
@@ -80,13 +86,16 @@ namespace Game.Seasons
         {
             Instance = this;
             SeasonWeatherGate.Current = this;
-            ResolveRefs();
+
+            if (_seasonSystem == null || _worldTime == null || _weatherManager == null)
+            {
+                Debug.LogError(
+                    $"{nameof(SeasonWeatherDirector)}: assign SeasonSystem, WorldTime, and WeatherManager on the prefab/scene instance.");
+            }
         }
 
         private void OnEnable()
         {
-            ResolveRefs();
-
             if (_seasonSystem != null)
                 _seasonSystem.OnSeasonChanged += HandleSeasonChanged;
 
@@ -104,6 +113,8 @@ namespace Game.Seasons
 
             if (_worldTime != null)
                 _worldTime.OnTimeAdvanced -= HandleTimeAdvanced;
+
+            ClearThunderstormVfx();
         }
 
         private void OnDestroy()
@@ -112,24 +123,6 @@ namespace Game.Seasons
                 Instance = null;
             if (SeasonWeatherGate.Current == (ISeasonWeatherGate)this)
                 SeasonWeatherGate.Current = null;
-        }
-
-        private void ResolveRefs()
-        {
-            if (_seasonSystem == null)
-                _seasonSystem = SeasonSystem.Instance ?? FindFirstObjectByType<SeasonSystem>();
-            if (_worldTime == null)
-                _worldTime = FindFirstObjectByType<WorldTime>();
-            if (_weatherManager == null)
-                _weatherManager = FindFirstObjectByType<WeatherManager>();
-            if (_fogManager == null)
-                _fogManager = FindFirstObjectByType<FogManager>();
-            if (_cloudManager == null)
-                _cloudManager = FindFirstObjectByType<CloudManager>();
-            if (_stormLifecycle == null)
-                _stormLifecycle = FindFirstObjectByType<StormLifecycleManager>();
-            if (_cloudEvolution == null)
-                _cloudEvolution = FindFirstObjectByType<CloudEvolutionManager>();
         }
 
         private void HandleSeasonChanged(SeasonId previous, SeasonId next)
@@ -271,7 +264,10 @@ namespace Game.Seasons
                     _fogManager?.ClearAllFog();
 
                 if (IsStormKind(previous) && !IsStormKind(kind))
+                {
                     ClearStormsQuietly();
+                    ClearThunderstormVfx();
+                }
 
                 if (IsRainKind(kind) && _cloudManager != null && _cloudManager.ActiveClouds != null)
                 {
@@ -292,15 +288,78 @@ namespace Game.Seasons
             // Fog spawn is checked by FogManager via CanSpawnFog.
             // Storm random spawn is gated via CanFormStorm; Alpha keeps StormLifecycle random off.
             if (kind == SeasonWeatherKind.Thunderstorm && kindChanged)
-                TrySpawnThunderstormVfx();
+            {
+                SpawnThunderstormVfx();
+                TrySpawnThunderstormSim();
+            }
         }
 
-        private void TrySpawnThunderstormVfx()
+        private void SpawnThunderstormVfx()
+        {
+            if (_thunderstormVfxPrefab == null)
+            {
+                Debug.LogWarning(
+                    $"{nameof(SeasonWeatherDirector)}: Thunderstorm VFX prefab is not assigned.");
+                return;
+            }
+
+            ClearThunderstormVfx();
+
+            Transform parent = _thunderstormVisualParent;
+            _activeThunderstormVfx = Instantiate(
+                _thunderstormVfxPrefab,
+                ResolveThunderstormVfxPosition(),
+                Quaternion.identity,
+                parent);
+        }
+
+        private Vector3 ResolveThunderstormVfxPosition()
+        {
+            if (_cloudManager != null && _cloudManager.ActiveClouds != null)
+            {
+                Vector2 sum = Vector2.zero;
+                int used = 0;
+                for (int i = 0; i < _cloudManager.ActiveClouds.Count && used < 3; i++)
+                {
+                    var cloud = _cloudManager.ActiveClouds[i];
+                    if (cloud == null)
+                        continue;
+                    sum += cloud.Position;
+                    used++;
+                }
+
+                if (used > 0)
+                {
+                    sum /= used;
+                    return new Vector3(sum.x, _thunderstormVisualHeight, sum.y);
+                }
+            }
+
+            if (_thunderstormVisualParent != null)
+            {
+                Vector3 parentPos = _thunderstormVisualParent.position;
+                parentPos.y = _thunderstormVisualHeight;
+                return parentPos;
+            }
+
+            return new Vector3(0f, _thunderstormVisualHeight, 0f);
+        }
+
+        private void ClearThunderstormVfx()
+        {
+            if (_activeThunderstormVfx == null)
+                return;
+
+            Destroy(_activeThunderstormVfx);
+            _activeThunderstormVfx = null;
+        }
+
+        private void TrySpawnThunderstormSim()
         {
             if (_stormLifecycle == null || _worldTime == null)
                 return;
 
-            // Prefer creating from existing clouds if any; otherwise skip (no rebuild of storm system).
+            // Simulation overlay still prefers existing clouds; VFX no longer depends on this.
             if (_cloudManager == null || _cloudManager.ActiveClouds == null || _cloudManager.ActiveClouds.Count == 0)
                 return;
 

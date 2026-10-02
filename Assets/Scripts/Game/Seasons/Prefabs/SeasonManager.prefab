@@ -1,0 +1,113 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1122334455
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2233445566}
+  - component: {fileID: 3344556677}
+  - component: {fileID: 4455667788}
+  - component: {fileID: 5566778899}
+  - component: {fileID: 6677889900}
+  m_Layer: 0
+  m_Name: SeasonManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2233445566
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1122334455}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3344556677
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1122334455}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8960417b50ddeb04c95900eea90d583e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _worldTime: {fileID: 0}
+  _calendar: {fileID: 11400000, guid: a14c1e0d2b3a4f5e9c8d7b6a5e4d3c2b, type: 2}
+  _spring: {fileID: 11400000, guid: b25d2f1e3c4b506f0d9e8c7b6f5e4d3c, type: 2}
+  _summer: {fileID: 11400000, guid: c36e301f4d5c61701e0f9d8c7a6f5e4d, type: 2}
+  _autumn: {fileID: 11400000, guid: d47f41205e6d72812f10ae9d8b7a6f5e, type: 2}
+  _winter: {fileID: 11400000, guid: e58052316f7e83923021bf0e9c8b7a6f, type: 2}
+  _logSeasonChanges: 1
+--- !u!114 &4455667788
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1122334455}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c53a2a3ce8e3b74dadd872f336e6dbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _seasonSystem: {fileID: 3344556677}
+  _worldTime: {fileID: 0}
+  _weatherManager: {fileID: 0}
+  _mapping: {fileID: 11400000, guid: f6916342708f94a34132c01f0d9c8b7a, type: 2}
+  _fogManager: {fileID: 0}
+  _cloudManager: {fileID: 0}
+  _stormLifecycle: {fileID: 0}
+  _cloudEvolution: {fileID: 0}
+  _thunderstormVfxPrefab: {fileID: 429765892871924701, guid: 1aad2349b8dd5a84d9f6e33cb2cd7e1a, type: 3}
+  _thunderstormVisualParent: {fileID: 0}
+  _thunderstormVisualHeight: 5
+  _logWeatherChanges: 1
+--- !u!114 &5566778899
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1122334455}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60362c44e9c1b454bb6c43f6f4a66a02, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _seasonSystem: {fileID: 3344556677}
+  _director: {fileID: 4455667788}
+  _worldTime: {fileID: 0}
+  _showOverlay: 0
+  _overlayScale: 1.35
+  _baseFontSize: 16
+  _advanceHourKey: 93
+  _advanceDayKey: 91
+--- !u!114 &6677889900
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1122334455}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b19dc44d4050718449bea19415a9ce46, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _seasonSystem: {fileID: 3344556677}
