@@ -4,9 +4,6 @@ using UnityEngine;
 
 namespace Game.Seasons
 {
-    /// <summary>
-    /// Pre-generates a season weather timeline from quota/range rules.
-    /// </summary>
     public sealed class SeasonWeatherScheduler
     {
         private const double SecondsPerHour = 3600d;
@@ -32,7 +29,6 @@ namespace Game.Seasons
 
             if (definition.WeatherRules != null)
             {
-                // Schedule severe / discrete events first.
                 for (int i = 0; i < definition.WeatherRules.Count; i++)
                 {
                     SeasonWeatherEventRule rule = definition.WeatherRules[i];
@@ -79,7 +75,6 @@ namespace Game.Seasons
             if (preferMax < preferMin)
                 preferMax = preferMin;
 
-            // Winter snow: bias half toward season start, half toward end.
             bool splitEnds = rule.Kind == SeasonWeatherKind.Snow && definition.Season == SeasonId.Winter;
 
             for (int i = 0; i < count; i++)
@@ -104,7 +99,6 @@ namespace Game.Seasons
                 for (int attempt = 0; attempt < 48 && !placed; attempt++)
                 {
                     float progress = Mathf.Lerp(localPreferMin, localPreferMax, (float)rng.NextDouble());
-                    // Keep events from clustering at the extreme start of the season.
                     progress = Mathf.Clamp(progress, 0.02f, 0.98f);
 
                     double durationHours = Lerp(rule.MinDurationHours, rule.MaxDurationHours, rng.NextDouble());
@@ -216,7 +210,6 @@ namespace Game.Seasons
             double end,
             SeasonWeatherEventRule rule)
         {
-            // Require the midpoint of the event to sit inside the window.
             double mid = (start + end) * 0.5d;
             int dayIndex = (int)Math.Floor(mid / SeasonCalendarMath.SecondsPerDay);
             double secondsIntoDay = mid - dayIndex * (double)SeasonCalendarMath.SecondsPerDay;
@@ -230,7 +223,6 @@ namespace Game.Seasons
             if (endMinutes >= startMinutes)
                 return midMinutes >= startMinutes && midMinutes < endMinutes;
 
-            // Window wraps week (not expected for Alpha winter window).
             return midMinutes >= startMinutes || midMinutes < endMinutes;
         }
 

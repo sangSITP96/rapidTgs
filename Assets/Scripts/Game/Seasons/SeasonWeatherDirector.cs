@@ -10,9 +10,6 @@ using UnityEngine;
 
 namespace Game.Seasons
 {
-    /// <summary>
-    /// Applies the season weather schedule to gameplay WeatherManager and gates/drives VFX.
-    /// </summary>
     [DefaultExecutionOrder(-40)]
     public sealed class SeasonWeatherDirector : MonoBehaviour, ISeasonWeatherGate
     {
@@ -172,7 +169,6 @@ namespace Game.Seasons
 
             SeasonWeatherKind kind = entry != null ? entry.Kind : SeasonWeatherKind.Clear;
 
-            // Never allow Mighty Storm in Alpha.
             if (kind == SeasonWeatherKind.MightyStorm)
                 kind = SeasonWeatherKind.PartlyCloudy;
 
@@ -221,7 +217,6 @@ namespace Game.Seasons
 
         private SeasonWeatherScheduleEntry FindEntryAt(double total)
         {
-            // Prefer non-ambient severe events if overlapping (should not overlap by construction).
             SeasonWeatherScheduleEntry ambient = null;
             for (int i = 0; i < _schedule.Count; i++)
             {
@@ -271,7 +266,6 @@ namespace Game.Seasons
 
                 if (IsRainKind(kind) && _cloudManager != null && _cloudManager.ActiveClouds != null)
                 {
-                    // Drive existing rain evolution on a cluster cloud if present.
                     for (int i = 0; i < _cloudManager.ActiveClouds.Count; i++)
                     {
                         var cloud = _cloudManager.ActiveClouds[i];
@@ -284,9 +278,6 @@ namespace Game.Seasons
                 }
             }
 
-            // Ambient clouds remain allowed while CanSpawnAmbientClouds is true (checked by CloudManager).
-            // Fog spawn is checked by FogManager via CanSpawnFog.
-            // Storm random spawn is gated via CanFormStorm; Alpha keeps StormLifecycle random off.
             if (kind == SeasonWeatherKind.Thunderstorm && kindChanged)
             {
                 SpawnThunderstormVfx();
@@ -359,7 +350,6 @@ namespace Game.Seasons
             if (_stormLifecycle == null || _worldTime == null)
                 return;
 
-            // Simulation overlay still prefers existing clouds; VFX no longer depends on this.
             if (_cloudManager == null || _cloudManager.ActiveClouds == null || _cloudManager.ActiveClouds.Count == 0)
                 return;
 
@@ -452,7 +442,7 @@ namespace Game.Seasons
                 StartGameSeconds = now,
                 EndGameSeconds = now + Math.Max(0.25d, durationHours) * 3600d
             };
-            _currentKind = SeasonWeatherKind.Clear; // force change path
+            _currentKind = SeasonWeatherKind.Clear;
             ApplyAt(now, force: true);
         }
 

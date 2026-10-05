@@ -2,9 +2,6 @@ using System;
 
 namespace Game.Seasons
 {
-    /// <summary>
-    /// Shared calendar math so WorldTime daylight and SeasonSystem stay aligned.
-    /// </summary>
     public static class SeasonCalendarMath
     {
         public const int SecondsPerDay = 86400;

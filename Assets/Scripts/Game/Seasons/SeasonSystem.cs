@@ -5,11 +5,6 @@ using UnityEngine;
 
 namespace Game.Seasons
 {
-    /// <summary>
-    /// Authoritative Phase 14 season state. Uses <see cref="WorldTime"/> as the only clock.
-    /// Alpha: season changes every <see cref="SeasonCalendarConfig.DaysPerSeason"/> game days
-    /// at 00:00 on the configured weekday (Monday by default) — not real-world Eastern Time.
-    /// </summary>
     [DefaultExecutionOrder(-50)]
     public sealed class SeasonSystem : MonoBehaviour
     {
@@ -265,8 +260,6 @@ namespace Game.Seasons
 
         public void ForceSeason(SeasonId season)
         {
-            // Jump the clock to this season's start. Pinning CurrentSeason without
-            // moving WorldTime would make +Day / +7 Days leave the season stuck.
             JumpToSeasonStart(season);
         }
 
@@ -326,7 +319,6 @@ namespace Game.Seasons
 
         private void EnsureDefinitions()
         {
-            // Runtime fallbacks are created lazily in GetDefinition.
         }
 
         private void SyncTimeConfigYearLength()
@@ -341,9 +333,6 @@ namespace Game.Seasons
             _worldTime.Config.StartingSeasonIndex = (int)_calendar.StartingSeason;
         }
 
-        /// <summary>
-        /// Used by WorldTime daylight so gameplay season and night length share one calendar.
-        /// </summary>
         public bool TryGetDaylightSeason(out int seasonIndex, out float blendToNext01)
         {
             seasonIndex = (int)CurrentSeason;
@@ -353,7 +342,6 @@ namespace Game.Seasons
                 return true;
             }
 
-            // Mild blend toward next season in the last 15% of the season for daylight only.
             float t = Mathf.InverseLerp(0.85f, 1f, _seasonProgress01);
             blendToNext01 = Mathf.Clamp01(t);
             return true;

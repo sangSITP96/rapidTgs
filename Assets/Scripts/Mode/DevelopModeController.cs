@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Game.Travel;
 using Game.Seasons.DebugTools;
+using Game.Battle.DebugTools;
 
 public sealed class DevelopModeController : MonoBehaviour
 {
@@ -10,12 +11,14 @@ public sealed class DevelopModeController : MonoBehaviour
     [SerializeField] private Button _environmentButton;
     [SerializeField] private Button _travelDebugButton;
     [SerializeField] private Button _seasonDebugButton;
+    [SerializeField] private Button _battleDebugButton;
 
     [Header("Content Panels")]
     [SerializeField] private GameObject _movementPanel;
     [SerializeField] private GameObject _environmentPanel;
     [SerializeField] private GameObject _travelDebugPanel;
     [SerializeField] private GameObject _seasonDebugPanel;
+    [SerializeField] private GameObject _battleDebugPanel;
 
     [Header("Travel Debug")]
     [SerializeField] private Toggle _showTravelOverlayToggle;
@@ -24,6 +27,10 @@ public sealed class DevelopModeController : MonoBehaviour
     [Header("Season Debug")]
     [SerializeField] private Toggle _showSeasonOverlayToggle;
     [SerializeField] private SeasonDebugController _seasonDebug;
+
+    [Header("Battle Debug")]
+    [SerializeField] private Toggle _showBattleOverlayToggle;
+    [SerializeField] private BattleTestController _battleDebug;
 
     [Header("Movement Settings")]
     [SerializeField] private MarbleMovement _marbleMovement;
@@ -41,6 +48,9 @@ public sealed class DevelopModeController : MonoBehaviour
     {
         if (_travelDebug == null)
             _travelDebug = FindFirstObjectByType<TravelDebugController>();
+
+        if (_battleDebug == null)
+            _battleDebug = FindFirstObjectByType<BattleTestController>();
 
         if (_marbleMovement == null)
             _marbleMovement = FindFirstObjectByType<MarbleMovement>();
@@ -61,6 +71,16 @@ public sealed class DevelopModeController : MonoBehaviour
             _showSeasonOverlayToggle.SetIsOnWithoutNotify(false);
         }
 
+        if (_showBattleOverlayToggle != null)
+        {
+            _showBattleOverlayToggle.onValueChanged.RemoveListener(SetBattleOverlayVisible);
+            _showBattleOverlayToggle.onValueChanged.AddListener(SetBattleOverlayVisible);
+            _showBattleOverlayToggle.SetIsOnWithoutNotify(false);
+        }
+
+        if (_battleDebug != null)
+            _battleDebug.ShowOverlay = false;
+
         SetMode(_defaultMode);
     }
 
@@ -68,6 +88,9 @@ public sealed class DevelopModeController : MonoBehaviour
     {
         if (_showSeasonOverlayToggle != null && _seasonDebug != null)
             _showSeasonOverlayToggle.SetIsOnWithoutNotify(_seasonDebug.ShowOverlay);
+
+        if (_showBattleOverlayToggle != null && _battleDebug != null)
+            _showBattleOverlayToggle.SetIsOnWithoutNotify(_battleDebug.ShowOverlay);
     }
 
     private void OnDestroy()
@@ -77,6 +100,9 @@ public sealed class DevelopModeController : MonoBehaviour
 
         if (_showSeasonOverlayToggle != null)
             _showSeasonOverlayToggle.onValueChanged.RemoveListener(SetSeasonOverlayVisible);
+
+        if (_showBattleOverlayToggle != null)
+            _showBattleOverlayToggle.onValueChanged.RemoveListener(SetBattleOverlayVisible);
     }
 
     public void SetMovementMode()
@@ -99,6 +125,11 @@ public sealed class DevelopModeController : MonoBehaviour
         SetMode(ModeType.SeasonDebug);
     }
 
+    public void SetBattleDebugMode()
+    {
+        SetMode(ModeType.BattleDebug);
+    }
+
     public void SetTravelOverlayVisible(bool visible)
     {
         if (_travelDebug == null)
@@ -112,6 +143,15 @@ public sealed class DevelopModeController : MonoBehaviour
     {
         if (_seasonDebug != null)
             _seasonDebug.ShowOverlay = visible;
+    }
+
+    public void SetBattleOverlayVisible(bool visible)
+    {
+        if (_battleDebug == null)
+            _battleDebug = FindFirstObjectByType<BattleTestController>();
+
+        if (_battleDebug != null)
+            _battleDebug.ShowOverlay = visible;
     }
 
     public void SetMode(ModeType mode)
@@ -133,6 +173,9 @@ public sealed class DevelopModeController : MonoBehaviour
         if (_seasonDebugPanel != null)
             _seasonDebugPanel.SetActive(mode == ModeType.SeasonDebug);
 
+        if (_battleDebugPanel != null)
+            _battleDebugPanel.SetActive(mode == ModeType.BattleDebug);
+
         if (mode == ModeType.Movement)
             _marbleMovement?.ApplyMovementSettingsToUi();
 
@@ -144,6 +187,7 @@ public sealed class DevelopModeController : MonoBehaviour
                 ModeType.Environment => "Environment",
                 ModeType.TravelDebug => "Travel Debug",
                 ModeType.SeasonDebug => "Season Debug",
+                ModeType.BattleDebug => "Battle Debug",
                 _ => "Develop Mode"
             };
         }

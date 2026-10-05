@@ -5,9 +5,6 @@ using UnityEngine;
 
 namespace Game.Seasons.DebugTools
 {
-    /// <summary>
-    /// Develop-only Season / weather controls. Not shown in Production builds.
-    /// </summary>
     public sealed class SeasonDebugController : MonoBehaviour
     {
         [SerializeField] private SeasonSystem _seasonSystem;

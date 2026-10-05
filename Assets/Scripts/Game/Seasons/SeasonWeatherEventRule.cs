@@ -8,10 +8,8 @@ namespace Game.Seasons
     {
         public SeasonWeatherKind Kind = SeasonWeatherKind.Clear;
 
-        [Tooltip("If false, this kind is disallowed for the season.")]
         public bool Allowed = true;
 
-        [Tooltip("If true, scheduler may place discrete timed events for this kind.")]
         public bool ScheduleAsEvents = false;
 
         [Min(0)] public int MinCountPerSeason = 0;
@@ -31,7 +29,6 @@ namespace Game.Seasons
         [Range(0, 6)] public int WindowEndWeekday = 6;
         [Range(0, 23)] public int WindowEndHour = 23;
 
-        [Tooltip("Minimum gap between events of this kind (game hours).")]
         [Min(0f)] public float MinGapHours = 6f;
     }
 }

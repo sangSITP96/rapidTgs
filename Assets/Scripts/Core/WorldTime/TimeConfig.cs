@@ -27,7 +27,6 @@ namespace Game.Core.WorldTime
         [Min(0f)] public float SunsetDurationMinutes = 30f;
 
         [Header("Seasonal Night Length (fraction of day that is night)")]
-        [Tooltip("Night fraction at mid-Spring. Interpolates between seasons.")]
         [Range(0f, 1f)] public float SpringNightFraction = 0.21f;
 
         [Range(0f, 1f)] public float SummerNightFraction = 0.19f;
@@ -37,10 +36,8 @@ namespace Game.Core.WorldTime
         [Range(0f, 1f)] public float WinterNightFraction = 0.25f;
 
         [Header("Season Calendar (Game Days)")]
-        [Tooltip("Alpha: 28 = 4 seasons × 7 days. Keep synchronized with SeasonCalendarConfig / SeasonSystem.")]
         [Min(4)] public int GameDaysPerYear = 28;
 
-        [Tooltip("Season index at day 0: 0=Spring, 1=Summer, 2=Autumn, 3=Winter.")]
         [Range(0, 3)] public int StartingSeasonIndex = 0;
 
         [Header("Daily Clock Drift (Placeholder)")]

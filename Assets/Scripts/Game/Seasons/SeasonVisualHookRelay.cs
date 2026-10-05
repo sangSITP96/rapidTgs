@@ -2,9 +2,6 @@ using UnityEngine;
 
 namespace Game.Seasons
 {
-    /// <summary>
-    /// Future seasonal foliage/terrain hooks. No artwork required for Phase 14 Alpha.
-    /// </summary>
     public sealed class SeasonVisualHookRelay : MonoBehaviour
     {
         [SerializeField] private SeasonSystem _seasonSystem;

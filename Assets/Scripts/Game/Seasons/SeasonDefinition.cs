@@ -9,7 +9,6 @@ namespace Game.Seasons
         public SeasonId Season = SeasonId.Spring;
 
         [Header("Duration")]
-        [Tooltip("Alpha default: 7 game days. Calendar config can override.")]
         [Min(1)] public int DurationDays = 7;
 
         [Header("Temperature (°F stored)")]
@@ -20,7 +19,6 @@ namespace Game.Seasons
         [Range(0f, 1f)] public float ClearSkiesMin = 0.60f;
         [Range(0f, 1f)] public float ClearSkiesMax = 0.70f;
 
-        [Tooltip("Remaining non-event time after clear target can be partly cloudy.")]
         [Range(0f, 1f)] public float PartlyCloudyFillWeight = 1f;
 
         [Header("Visual transition into this season")]
@@ -28,7 +26,6 @@ namespace Game.Seasons
         [Min(0f)] public float TransitionMaxHours = 6f;
 
         [Header("Mighty Storm (future-ready)")]
-        [Tooltip("Alpha: leave disabled. Architecture-ready only.")]
         public bool MightyStormEnabled = false;
 
         [Header("Weather rules")]

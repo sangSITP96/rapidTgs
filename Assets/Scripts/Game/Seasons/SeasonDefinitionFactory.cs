@@ -3,9 +3,6 @@ using UnityEngine;
 
 namespace Game.Seasons
 {
-    /// <summary>
-    /// Builds Alpha season definitions in code when ScriptableObject assets are not assigned.
-    /// </summary>
     public static class SeasonDefinitionFactory
     {
         public static SeasonDefinition CreateRuntime(SeasonId season)
@@ -81,7 +78,7 @@ namespace Game.Seasons
                     };
                     break;
 
-                default: // Winter
+                default:
                     def.MinTemperatureF = -15f;
                     def.MaxTemperatureF = 49f;
                     def.ClearSkiesMin = 0.25f;
@@ -91,17 +88,15 @@ namespace Game.Seasons
                     def.MightyStormEnabled = false;
                     var snowstorm = Event(SeasonWeatherKind.Snowstorm, true, true, 3, 5, 1f, 4f);
                     snowstorm.UseWeekdayWindow = true;
-                    snowstorm.WindowStartWeekday = 1; // Tuesday
+                    snowstorm.WindowStartWeekday = 1;
                     snowstorm.WindowStartHour = 18;
-                    snowstorm.WindowEndWeekday = 4;   // Friday
+                    snowstorm.WindowEndWeekday = 4;
                     snowstorm.WindowEndHour = 12;
                     snowstorm.MinGapHours = 8f;
 
                     var snow = Event(SeasonWeatherKind.Snow, true, true, 2, 4, 1f, 4f);
                     snow.PreferProgressMin = 0f;
                     snow.PreferProgressMax = 0.35f;
-                    // Second preference handled by splitting counts in scheduler via another rule-like placement:
-                    // we place half near start and half near end via PreferProgressMax mid override in scheduler.
 
                     def.WeatherRules = new List<SeasonWeatherEventRule>
                     {
