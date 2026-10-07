@@ -65,6 +65,14 @@ namespace Game.Battle
             return new ArmyComposition(infantry, cavalry, archers);
         }
 
+        public static ArmyComposition operator +(ArmyComposition left, ArmyComposition right)
+        {
+            return new ArmyComposition(
+                left.infantry + right.infantry,
+                left.cavalry + right.cavalry,
+                left.archers + right.archers);
+        }
+
         public static ArmyComposition operator -(ArmyComposition left, ArmyComposition right)
         {
             return new ArmyComposition(
