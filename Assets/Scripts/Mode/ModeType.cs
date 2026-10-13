@@ -4,5 +4,6 @@ public enum ModeType
     Environment = 1,
     TravelDebug = 2,
     SeasonDebug = 3,
-    BattleDebug = 4
+    BattleDebug = 4,
+    CampaignDebug = 5
 }
