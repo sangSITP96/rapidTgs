@@ -40,6 +40,7 @@ namespace Game.Campaign
 
         private IFistForceSelector _fistForceSelector = new RandomEqualFistForceSelector();
         private readonly List<string> _activeMarchGroupIds = new List<string>();
+        private NavigationRoute _pendingMarchRoute;
 
         private bool _autoResolveBattles = true;
         private string _lastScheduleSkipReason;
@@ -50,6 +51,7 @@ namespace Game.Campaign
         public Campaign ActiveCampaign => _activeCampaign;
         public string LocalCommanderId => _localCommanderId;
         public ITroopUnitRoster OwnerRoster => _ownerRoster;
+        public NavigationRoute PendingMarchRoute => _pendingMarchRoute;
         public bool AutoResolveBattles
         {
             get => _autoResolveBattles;
@@ -166,6 +168,7 @@ namespace Game.Campaign
             _ownerRoster?.ResetDeployedForTesting();
 
             _activeMarchGroupIds.Clear();
+            _pendingMarchRoute = null;
             _lastFailedBattleDay = -1;
             _lastFailedBattleSlot = -1;
             _lastScheduleSkipReason = null;
@@ -238,6 +241,7 @@ namespace Game.Campaign
             Campaign declined = _activeCampaign;
             _activeCampaign = null;
             _activeMarchGroupIds.Clear();
+            _pendingMarchRoute = null;
             NotifyChanged();
             CampaignDeclined?.Invoke(declined);
             return true;
@@ -318,10 +322,74 @@ namespace Game.Campaign
         }
 
         /// <summary>
+        /// Preview the Campaign march route without starting travel.
+        /// Used by The General route-advice step before Commander approval.
+        /// </summary>
+        public bool TryPreviewOwnerMarchRoute(out NavigationRoute route, out string error)
+        {
+            route = null;
+            error = null;
+            ResolveRefs();
+
+            if (_activeCampaign == null)
+            {
+                error = "No active campaign.";
+                return false;
+            }
+
+            if (_activeCampaign.OwnerResponse != CampaignResponse.Accepted)
+            {
+                error = "Owner must Accept before route preview.";
+                return false;
+            }
+
+            if (!TryGetCampaignDestination(out Vector3 destination))
+            {
+                error = "Cannot resolve territory destination.";
+                return false;
+            }
+
+            if (_pathfinder == null)
+            {
+                error = "TgsNavigationPathfinder missing — cannot route around Lake.";
+                return false;
+            }
+
+            if (_travel == null)
+            {
+                error = "TroopTravelController missing.";
+                return false;
+            }
+
+            Vector3 origin = _travel.transform.position;
+            route = _pathfinder.FindRouteToWorld(origin, destination);
+            if (route == null || !route.IsValid)
+            {
+                error = route != null
+                    ? route.FailureReason
+                    : "No route (null). Destination may be Lake/blocked or unreachable.";
+                _pendingMarchRoute = route;
+                return false;
+            }
+
+            _pendingMarchRoute = route;
+            return true;
+        }
+
+        public void ClearPendingMarchRoute()
+        {
+            _pendingMarchRoute = null;
+        }
+
+        /// <summary>
         /// Contribute selected roster units and begin one shared March to Campaign territory.
         /// Units become InCamp only on Travel Arrived — not immediately Campaign force.
+        /// When <paramref name="approvedRoute"/> is provided (Commander-approved preview), that route is used
+        /// instead of pathfinding again.
         /// </summary>
-        public bool MarchSelectedOwnerUnits(IReadOnlyList<TroopUnit> selectedUnits)
+        public bool MarchSelectedOwnerUnits(
+            IReadOnlyList<TroopUnit> selectedUnits,
+            NavigationRoute approvedRoute = null)
         {
             ResolveRefs();
             if (_activeCampaign == null || _travel == null || selectedUnits == null || selectedUnits.Count == 0)
@@ -338,6 +406,10 @@ namespace Game.Campaign
                 Debug.LogWarning("[Campaign] Cannot resolve territory destination.");
                 return false;
             }
+
+            NavigationRoute routeToUse = approvedRoute;
+            if (routeToUse == null || !routeToUse.IsValid)
+                routeToUse = _pendingMarchRoute;
 
             _activeMarchGroupIds.Clear();
             for (int i = 0; i < selectedUnits.Count; i++)
@@ -357,7 +429,20 @@ namespace Game.Campaign
             if (_activeMarchGroupIds.Count == 0)
                 return false;
 
-            if (!TryBeginPathedTravel(destination, out string travelError))
+            bool travelStarted;
+            string travelError;
+            if (routeToUse != null && routeToUse.IsValid)
+            {
+                _travel.BeginTravel(routeToUse);
+                travelStarted = true;
+                travelError = null;
+            }
+            else
+            {
+                travelStarted = TryBeginPathedTravel(destination, out travelError);
+            }
+
+            if (!travelStarted)
             {
                 Debug.LogWarning($"[Campaign] March failed: {travelError}");
                 // Roll contributions back to Selected so player can retry.
@@ -365,6 +450,7 @@ namespace Game.Campaign
                 return false;
             }
 
+            _pendingMarchRoute = null;
             NotifyChanged();
             Debug.Log(
                 $"[Campaign] March group started: {_activeMarchGroupIds.Count} unit(s) → " +

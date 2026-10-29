@@ -99,7 +99,11 @@ namespace Game.Campaign.Editor
                 onGui.ShowOverlay = false;
 
             Selection.activeGameObject = instance;
-            Debug.Log("[Campaign] Scene wired: tap Colony Map territory → Offer → Accept → Select Troops → March.");
+
+            // Bake General panels into Campaign HUD prefab + scene.
+            Game.General.Editor.GeneralUiPrefabBuilder.WireIntoActiveScene();
+            Debug.Log(
+                "[Campaign] Scene wired with Phase 18 General: Briefing → Troops → Route Advice → March → Monitoring.");
         }
 
         private static Game.Battle.BattleSettings FindBattleSettings()
@@ -188,17 +192,27 @@ namespace Game.Campaign.Editor
 
         private static void BuildTroopSelectionPopup()
         {
-            var root = CreatePanelRoot("CampaignTroopSelectionPopup", new Vector2(440, 420));
+            var root = CreatePanelRoot("CampaignTroopSelectionPopup", new Vector2(460, 540));
             var view = root.AddComponent<CampaignTroopSelectionPopupView>();
 
-            TMP_Text title = AddTmp(root.transform, "Title", "SELECT TROOPS", 26, FontStyles.Bold, TextAlignmentOptions.Center);
-            StretchTop(title.rectTransform, 12, 48);
+            TMP_Text title = AddTmp(root.transform, "Title", "MERCENARY TERMINAL", 26, FontStyles.Bold, TextAlignmentOptions.Center);
+            StretchTop(title.rectTransform, 12, 40);
+
+            TMP_Text advice = AddTmp(
+                root.transform,
+                "GeneralAdvice",
+                "The General…",
+                13,
+                FontStyles.Italic,
+                TextAlignmentOptions.TopLeft);
+            Stretch(advice.rectTransform, 0.62f, 0.88f, 16, 16);
+            advice.color = new Color(0.85f, 0.9f, 0.75f, 1f);
 
             var listGo = new GameObject("List", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
             listGo.transform.SetParent(root.transform, false);
             var listRt = listGo.GetComponent<RectTransform>();
             listRt.anchorMin = new Vector2(0.05f, 0.28f);
-            listRt.anchorMax = new Vector2(0.95f, 0.86f);
+            listRt.anchorMax = new Vector2(0.95f, 0.60f);
             listRt.offsetMin = Vector2.zero;
             listRt.offsetMax = Vector2.zero;
             var vlg = listGo.GetComponent<VerticalLayoutGroup>();
@@ -219,11 +233,12 @@ namespace Game.Campaign.Editor
             Button back = AddButton(root.transform, "BackButton", "BACK", new Color(0.3f, 0.3f, 0.35f));
             PlaceButton(back.GetComponent<RectTransform>(), 0.08f, 0.48f, 0.06f, 0.16f);
 
-            Button march = AddButton(root.transform, "MarchButton", "MARCH", new Color(0.2f, 0.4f, 0.55f));
+            Button march = AddButton(root.transform, "MarchButton", "Review Route", new Color(0.2f, 0.4f, 0.55f));
             PlaceButton(march.GetComponent<RectTransform>(), 0.52f, 0.92f, 0.06f, 0.16f);
 
             Assign(view, "_root", root);
             Assign(view, "_titleText", title);
+            Assign(view, "_generalAdviceText", advice);
             Assign(view, "_selectedTotalText", selected);
             Assign(view, "_listRoot", listGo.transform);
             if (rowPrefab != null)

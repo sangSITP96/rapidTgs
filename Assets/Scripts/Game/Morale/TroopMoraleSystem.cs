@@ -17,6 +17,13 @@ namespace  Game.Morale
         private readonly List<IHealthModifier> _healthModifiers = new();
         
         public TroopMoraleState State  => state;
+        public MoraleSettings Settings => settings;
+
+        /// <summary>
+        /// Threshold used by <see cref="NeedsHealthModifier"/> for Sleep/Water/Food → Health drain.
+        /// </summary>
+        public float HealthDamageThreshold =>
+            settings != null ? settings.HealthDamageThreshold : 40f;
         
         public float Health => state.Health;
         public float Sleep => state.Sleep;

@@ -262,6 +262,42 @@ namespace Game.Navigation
             RouteApprovalCancelled?.Invoke();
         }
 
+        /// <summary>
+        /// Visual-only route preview for Campaign / General advice.
+        /// Does not enter Plan March approval state and does not start travel.
+        /// </summary>
+        public void ShowRoutePreview(NavigationRoute route)
+        {
+            ResolveRefs();
+            ClearPathHighlights();
+
+            if (route == null)
+            {
+                if (_highlightedDestinationCell >= 0 && _tgs != null)
+                {
+                    _tgs.CellHideRegionSurface(_highlightedDestinationCell);
+                    _highlightedDestinationCell = -1;
+                }
+
+                return;
+            }
+
+            int highlightCell = route.DestinationCellIndex >= 0
+                ? route.DestinationCellIndex
+                : (route.IsValid ? -1 : _pathfinder != null
+                    ? _pathfinder.TryGetCellIndexAtWorld(route.Destination)
+                    : -1);
+            HighlightDestination(highlightCell);
+
+            if (route.IsValid && _highlightPathCells)
+                HighlightPath(route);
+        }
+
+        public void ClearRoutePreview()
+        {
+            ClearHighlights();
+        }
+
         private void ClearPendingApproval(bool clearHighlights)
         {
             _awaitingApproval = false;

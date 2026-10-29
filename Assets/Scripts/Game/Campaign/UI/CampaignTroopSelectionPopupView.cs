@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.General.UI;
 using Game.Troops;
 using TMPro;
 using UnityEngine;
@@ -11,6 +12,7 @@ namespace Game.Campaign.UI
     {
         [SerializeField] private GameObject _root;
         [SerializeField] private TMP_Text _titleText;
+        [SerializeField] private TMP_Text _generalAdviceText;
         [SerializeField] private TMP_Text _selectedTotalText;
         [SerializeField] private Transform _listRoot;
         [SerializeField] private CampaignTroopSelectionRowView _rowPrefab;
@@ -20,10 +22,18 @@ namespace Game.Campaign.UI
         private readonly List<CampaignTroopSelectionRowView> _rows = new List<CampaignTroopSelectionRowView>();
 
         public event Action BackClicked;
+
+        /// <summary>
+        /// Fired when Commander confirms selection and wants to review the march route.
+        /// Does not start March by itself — CampaignFlowController handles route advice first.
+        /// </summary>
         public event Action MarchClicked;
+
+        private bool _fontsScaled;
 
         private void Awake()
         {
+            GeneralPanelTextScale.ApplyOnce(this, ref _fontsScaled);
             if (_backButton != null)
                 _backButton.onClick.AddListener(() => BackClicked?.Invoke());
             if (_marchButton != null)
@@ -31,14 +41,28 @@ namespace Game.Campaign.UI
             // Prefab starts inactive; CampaignFlowController owns visibility.
         }
 
-        public void Show(IReadOnlyList<TroopUnit> availableUnits)
+        public void Show(IReadOnlyList<TroopUnit> availableUnits, string generalAdvice = null)
         {
+            GeneralPanelTextScale.ApplyOnce(this, ref _fontsScaled);
             gameObject.SetActive(true);
             if (_root != null && _root != gameObject)
                 _root.SetActive(true);
 
             if (_titleText != null)
-                _titleText.text = "SELECT TROOPS";
+                _titleText.text = "MERCENARY TERMINAL";
+
+            if (_generalAdviceText != null)
+            {
+                _generalAdviceText.text = string.Empty;
+                _generalAdviceText.gameObject.SetActive(false);
+            }
+
+            if (_marchButton != null)
+            {
+                var label = _marchButton.GetComponentInChildren<TMP_Text>();
+                if (label != null)
+                    label.text = "Review Route";
+            }
 
             ClearRows();
             if (availableUnits != null && _rowPrefab != null && _listRoot != null)
@@ -47,6 +71,7 @@ namespace Game.Campaign.UI
                 {
                     CampaignTroopSelectionRowView row = Instantiate(_rowPrefab, _listRoot);
                     row.gameObject.SetActive(true);
+                    ScaleRowFonts(row);
                     row.Bind(availableUnits[i]);
                     row.SelectionChanged += RefreshSelectedTotal;
                     _rows.Add(row);
@@ -54,6 +79,19 @@ namespace Game.Campaign.UI
             }
 
             RefreshSelectedTotal();
+        }
+
+        private static void ScaleRowFonts(CampaignTroopSelectionRowView row)
+        {
+            if (row == null)
+                return;
+
+            TMP_Text[] texts = row.GetComponentsInChildren<TMP_Text>(true);
+            for (int i = 0; i < texts.Length; i++)
+            {
+                if (texts[i] != null)
+                    texts[i].fontSize += GeneralPanelTextScale.ExtraSize;
+            }
         }
 
         public void Hide()

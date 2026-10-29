@@ -109,7 +109,11 @@ namespace Game.UI
             }
         }
 
-        public void PrepareForPlanMarch()
+        /// <summary>
+        /// Closes Develop Mode config UI so the map / overlays can take focus.
+        /// Does not start Plan March by itself.
+        /// </summary>
+        public void CloseDevelopModeUi()
         {
             ResolveFallbackRefs();
 
@@ -124,6 +128,15 @@ namespace Game.UI
                 if (_developModeToggle != null && _developModeToggle.isOn)
                     _developModeToggle.SetIsOnWithoutNotify(false);
             }
+
+            SetActiveSafe(_developModeRoot, true);
+            SetActiveSafe(_eventLogButton, true);
+        }
+
+        public void PrepareForPlanMarch()
+        {
+            ResolveFallbackRefs();
+            CloseDevelopModeUi();
 
             if (_moralePanel != null && !_moralePanel.activeSelf)
                 _moralePanel.SetActive(true);

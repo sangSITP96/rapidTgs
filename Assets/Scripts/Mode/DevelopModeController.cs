@@ -7,6 +7,9 @@ using Game.Seasons.DebugTools;
 using Game.Battle.DebugTools;
 using Game.Campaign.DebugTools;
 using Game.Campaign.UI;
+using Game.General.UI;
+using Game.Navigation;
+using Game.UI;
 
 public sealed class DevelopModeController : MonoBehaviour
 {
@@ -17,6 +20,7 @@ public sealed class DevelopModeController : MonoBehaviour
     [SerializeField] private Button _seasonDebugButton;
     [SerializeField] private Button _battleDebugButton;
     [SerializeField] private Button _campaignDebugButton;
+    [SerializeField] private Button _generalButton;
 
     [Header("Content Panels")]
     [SerializeField] private GameObject _movementPanel;
@@ -44,6 +48,17 @@ public sealed class DevelopModeController : MonoBehaviour
     [SerializeField] private CampaignFlowController _campaignFlow;
     [Tooltip("Legacy OnGUI overlay; keep off — use CampaignHudRoot Unity UI instead.")]
     [SerializeField] private bool _enableLegacyCampaignOnGui;
+
+    [Header("General Intro")]
+    [SerializeField] private GeneralIntroPanelView _generalIntroPanel;
+    [Tooltip("Prefab asset at Assets/Scripts/Game/General/Prefabs/GeneralIntroPanel.prefab")]
+    [SerializeField] private GeneralIntroPanelView _generalIntroPrefab;
+    [SerializeField] private Sprite _generalPortrait;
+    [SerializeField] private NavigationController _navigation;
+
+    private const string GeneralIntroPrefabAssetPath =
+        "Assets/Scripts/Game/General/Prefabs/GeneralIntroPanel.prefab";
+    private const string GeneralIntroPrefabResourcePath = "General/GeneralIntroPanel";
 
     [Header("Movement Settings")]
     [SerializeField] private MarbleMovement _marbleMovement;
@@ -114,6 +129,12 @@ public sealed class DevelopModeController : MonoBehaviour
         _campaignFlow?.SetTestingArmed(false);
         _campaignFlow?.SetTestControlsVisible(false);
 
+        if (_navigation == null)
+            _navigation = FindFirstObjectByType<NavigationController>();
+
+        EnsureGeneralIntroPanel();
+        WireGeneralIntroPanel(true);
+
         WireSidebarButtons();
         SetMode(_defaultMode);
     }
@@ -126,9 +147,12 @@ public sealed class DevelopModeController : MonoBehaviour
     private void WireSidebarButtons()
     {
         EnsureCampaignDebugSidebarButton();
+        EnsureGeneralSidebarButton();
 
         if (_campaignDebugButton == null)
             _campaignDebugButton = FindSidebarButtonByName("CampaignDebugButton", "Campaign Debug");
+        if (_generalButton == null)
+            _generalButton = FindSidebarButtonByName("GeneralButton", "General");
 
         BindButton(_movementButton, SetMovementMode);
         BindButton(_environmentButton, SetEnvironmentMode);
@@ -136,6 +160,7 @@ public sealed class DevelopModeController : MonoBehaviour
         BindButton(_seasonDebugButton, SetSeasonDebugMode);
         BindButton(_battleDebugButton, SetBattleDebugMode);
         BindButton(_campaignDebugButton, SetCampaignDebugMode);
+        BindButton(_generalButton, OpenGeneralIntro);
     }
 
     /// <summary>
@@ -176,6 +201,45 @@ public sealed class DevelopModeController : MonoBehaviour
         SetSidebarButtonLabel(buttonGo, "Campaign Debug");
         _campaignDebugButton = buttonGo.GetComponent<Button>();
         Debug.Log("[DevelopMode] Created missing Campaign Debug sidebar button at runtime.");
+    }
+
+    /// <summary>
+    /// Scene may not have General sidebar button yet — clone from an existing sidebar button.
+    /// </summary>
+    private void EnsureGeneralSidebarButton()
+    {
+        if (_generalButton != null)
+            return;
+
+        Button existing = FindSidebarButtonByName("GeneralButton", "General");
+        if (existing != null)
+        {
+            _generalButton = existing;
+            return;
+        }
+
+        Transform sidebar = FindSidebarTransform();
+        if (sidebar == null)
+        {
+            Debug.LogWarning("[DevelopMode] Sidebar not found — cannot create General button.");
+            return;
+        }
+
+        Button template = _campaignDebugButton != null
+            ? _campaignDebugButton
+            : _battleDebugButton != null
+                ? _battleDebugButton
+                : sidebar.GetComponentInChildren<Button>(true);
+
+        if (template == null)
+            return;
+
+        GameObject buttonGo = Instantiate(template.gameObject, sidebar);
+        buttonGo.name = "GeneralButton";
+        buttonGo.SetActive(true);
+        SetSidebarButtonLabel(buttonGo, "General");
+        _generalButton = buttonGo.GetComponent<Button>();
+        Debug.Log("[DevelopMode] Created missing General sidebar button at runtime.");
     }
 
     private Transform FindSidebarTransform()
@@ -298,6 +362,7 @@ public sealed class DevelopModeController : MonoBehaviour
         if (_showCampaignOverlayToggle != null)
             _showCampaignOverlayToggle.onValueChanged.RemoveListener(SetCampaignOverlayVisible);
 
+        WireGeneralIntroPanel(false);
         EnsureCampaignFlow();
         _campaignFlow?.SetTestingArmed(false);
     }
@@ -330,6 +395,131 @@ public sealed class DevelopModeController : MonoBehaviour
     public void SetCampaignDebugMode()
     {
         SetMode(ModeType.CampaignDebug);
+    }
+
+    /// <summary>
+    /// Develop Mode → General: close Develop panel, show General intro artwork.
+    /// </summary>
+    public void OpenGeneralIntro()
+    {
+        EnsureGeneralIntroPanel();
+        WireGeneralIntroPanel(true);
+
+        UiOverlayExclusive.Instance?.CloseDevelopModeUi();
+
+        if (_generalIntroPanel == null)
+        {
+            Debug.LogWarning(
+                "[DevelopMode] GeneralIntroPanel missing. Run Tools/General/Wire General Intro Panel.");
+            return;
+        }
+
+        _generalIntroPanel.Show(_generalPortrait);
+        Debug.Log("[DevelopMode] General intro opened.");
+    }
+
+    private void OnGeneralOpenNavigation()
+    {
+        _generalIntroPanel?.Hide();
+
+        // Same session as Develop Mode → Campaign: arm map offers + General
+        // Briefing → Troops → Route Advice → March (not legacy Plan March tap).
+        EnsureCampaignFlow();
+        if (_campaignFlow == null)
+        {
+            Debug.LogWarning(
+                "[DevelopMode] CampaignFlowController missing — cannot start General Campaign flow. " +
+                "Run Tools/Campaign/Create Campaign UI In Active Scene.");
+            return;
+        }
+
+        if (_navigation == null)
+            _navigation = FindFirstObjectByType<NavigationController>();
+        _navigation?.SetDestinationSelectMode(false);
+
+        // Arm map-offer / General campaign flow only — do not show Campaign Test Controls.
+        _campaignFlow.SetTestingArmed(true, showTestControls: false);
+        UiOverlayExclusive.Instance?.CloseDevelopModeUi();
+        Debug.Log("[DevelopMode] General Open Navigation → Campaign map-offer flow armed (no Test Controls).");
+    }
+
+    private void OnGeneralIntroClosed()
+    {
+        _generalIntroPanel?.Hide();
+    }
+
+    private void WireGeneralIntroPanel(bool bind)
+    {
+        if (_generalIntroPanel == null)
+            return;
+
+        _generalIntroPanel.OpenNavigationClicked -= OnGeneralOpenNavigation;
+        _generalIntroPanel.CloseClicked -= OnGeneralIntroClosed;
+        if (!bind)
+            return;
+
+        _generalIntroPanel.OpenNavigationClicked += OnGeneralOpenNavigation;
+        _generalIntroPanel.CloseClicked += OnGeneralIntroClosed;
+    }
+
+    private void EnsureGeneralIntroPanel()
+    {
+        if (_generalIntroPanel != null)
+            return;
+
+        _generalIntroPanel = FindFirstObjectByType<GeneralIntroPanelView>(FindObjectsInactive.Include);
+        if (_generalIntroPanel != null)
+            return;
+
+        GeneralIntroPanelView prefab = ResolveGeneralIntroPrefab();
+        if (prefab == null)
+        {
+            Debug.LogWarning(
+                "[DevelopMode] GeneralIntroPanel prefab missing. Assign _generalIntroPrefab on " +
+                "DevelopModeController, or run Tools/General/Wire General Intro Panel.");
+            return;
+        }
+
+        Transform parent = ResolveGeneralIntroParent();
+        _generalIntroPanel = Instantiate(prefab, parent);
+        _generalIntroPanel.name = "GeneralIntroPanel";
+        _generalIntroPanel.gameObject.SetActive(false);
+        Debug.Log("[DevelopMode] Instantiated GeneralIntroPanel from prefab asset.");
+    }
+
+    private static Transform ResolveGeneralIntroParent()
+    {
+        GameObject hud = GameObject.Find("CampaignHudRoot");
+        if (hud != null)
+            return hud.transform;
+
+        Canvas canvas = FindFirstObjectByType<Canvas>();
+        if (canvas != null)
+            return canvas.transform;
+
+        return null;
+    }
+
+    private GeneralIntroPanelView ResolveGeneralIntroPrefab()
+    {
+        if (_generalIntroPrefab != null)
+            return _generalIntroPrefab;
+
+#if UNITY_EDITOR
+        GameObject asset = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(GeneralIntroPrefabAssetPath);
+        if (asset != null)
+        {
+            _generalIntroPrefab = asset.GetComponent<GeneralIntroPanelView>();
+            if (_generalIntroPrefab != null)
+                return _generalIntroPrefab;
+        }
+#endif
+
+        GameObject resource = Resources.Load<GameObject>(GeneralIntroPrefabResourcePath);
+        if (resource != null)
+            _generalIntroPrefab = resource.GetComponent<GeneralIntroPanelView>();
+
+        return _generalIntroPrefab;
     }
 
     public void SetTravelOverlayVisible(bool visible)

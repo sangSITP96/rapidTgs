@@ -14042,6 +14042,62 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!1 &1549247612
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1549247614}
+  - component: {fileID: 1549247613}
+  m_Layer: 0
+  m_Name: GeneralAdvisor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1549247613
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1549247612}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 006464aad52766148869ecf307bf772b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _campaign: {fileID: 0}
+  _roster: {fileID: 0}
+  _travel: {fileID: 0}
+  _morale: {fileID: 0}
+  _pathfinder: {fileID: 0}
+  _surfaceQuery: {fileID: 0}
+  _weatherAdapter: {fileID: 0}
+  _weatherManager: {fileID: 0}
+  _seasonWeather: {fileID: 0}
+  _biomeMapData: {fileID: 0}
+  _tgs: {fileID: 0}
+  _generalDisplayName: The General
+--- !u!4 &1549247614
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1549247612}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1553805631
 GameObject:
   m_ObjectHideFlags: 0
@@ -15620,13 +15676,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 503868528}
     - target: {fileID: 1311260287011634502, guid: fe8cdceba1940194195fb69eb411761e, type: 3}
+      propertyPath: _travel
+      value: 
+      objectReference: {fileID: 238296189}
+    - target: {fileID: 1311260287011634502, guid: fe8cdceba1940194195fb69eb411761e, type: 3}
       propertyPath: _service
       value: 
       objectReference: {fileID: 503868529}
-    - target: {fileID: 6575261679148635969, guid: fe8cdceba1940194195fb69eb411761e, type: 3}
-      propertyPath: m_AdditionalShaderChannelsFlag
-      value: 25
-      objectReference: {fileID: 0}
+    - target: {fileID: 1311260287011634502, guid: fe8cdceba1940194195fb69eb411761e, type: 3}
+      propertyPath: _generalAdvisor
+      value: 
+      objectReference: {fileID: 1549247613}
     - target: {fileID: 7965090338948328581, guid: fe8cdceba1940194195fb69eb411761e, type: 3}
       propertyPath: m_Name
       value: CampaignHudRoot
@@ -18265,3 +18325,4 @@ SceneRoots:
   - {fileID: 2156000100}
   - {fileID: 503868531}
   - {fileID: 1793900803}
+  - {fileID: 1549247614}
