@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6fa329d9241b5f2498c6f8a643117b38, type: 3}
   m_Name: CurrentSettings
   m_EditorClassIdentifier: 
-  startingGold: 0
+  startingGold: 500
   startingSilver: 0
   defaultOperationSilverReward: 10
   goldResetMode: 0

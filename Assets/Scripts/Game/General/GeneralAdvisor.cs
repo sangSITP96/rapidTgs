@@ -74,6 +74,34 @@ namespace Game.General
                 if (gen != null)
                     _biomeMapData = gen.MapData;
             }
+
+            if (_biomeMapData == null && _pathfinder != null)
+                _biomeMapData = _pathfinder.BiomeMapData;
+
+            if (_biomeMapData == null)
+            {
+                TgsBiomeMapData[] maps = Resources.FindObjectsOfTypeAll<TgsBiomeMapData>();
+                for (int i = 0; i < maps.Length; i++)
+                {
+                    TgsBiomeMapData map = maps[i];
+                    if (map == null)
+                        continue;
+#if UNITY_EDITOR
+                    string path = UnityEditor.AssetDatabase.GetAssetPath(map);
+                    if (!string.IsNullOrEmpty(path) && path.StartsWith("Assets/", System.StringComparison.Ordinal))
+                    {
+                        _biomeMapData = map;
+                        break;
+                    }
+#else
+                    _biomeMapData = map;
+                    break;
+#endif
+                }
+            }
+
+            if (_pathfinder != null && _pathfinder.BiomeMapData == null && _biomeMapData != null)
+                _pathfinder.SetBiomeMapData(_biomeMapData);
         }
 
         public GeneralBriefingAdvice BuildCampaignBriefing(CampaignModel campaign = null)
@@ -128,6 +156,10 @@ namespace Game.General
                 _pathfinder != null &&
                 _travel != null)
             {
+                _pathfinder.ResolveRefs();
+                if (_biomeMapData != null && _pathfinder.BiomeMapData == null)
+                    _pathfinder.SetBiomeMapData(_biomeMapData);
+
                 Vector3 origin = _travel.transform.position;
                 NavigationRoute route = _pathfinder.FindRouteToWorld(origin, destination);
                 if (route != null && route.IsValid)
@@ -138,12 +170,11 @@ namespace Game.General
                 }
                 else
                 {
+                    // Keep failure for logs only — do not dump technical codes into the UI.
                     advice.HasRoute = false;
-                    advice.RouteFailureReason = route != null ? route.FailureReason : "No route.";
-                    advice.RiskFactors.Add(new AdviceFactor(
-                        AdviceFactorKind.Known,
-                        "Route preview failed",
-                        advice.RouteFailureReason));
+                    advice.RouteFailureReason = null;
+                    if (route != null && !string.IsNullOrEmpty(route.FailureReason))
+                        Debug.LogWarning($"[General] Route preview failed: {route.FailureReason}");
                 }
             }
 
@@ -251,12 +282,13 @@ namespace Game.General
                 advice.IsValid = false;
                 advice.FailureReason = route != null ? route.FailureReason : "No route.";
                 advice.GeneralMessage = string.Empty;
-                advice.RiskFactors.Add(new AdviceFactor(
-                    AdviceFactorKind.Known,
-                    "Route invalid",
-                    advice.FailureReason));
-                advice.BodyLines.Add(advice.FailureReason);
+                if (!string.IsNullOrEmpty(advice.FailureReason))
+                    Debug.LogWarning($"[General] Route advice failed: {advice.FailureReason}");
+
+                // Player-facing copy only — no technical MissingDependencies codes.
+                advice.BodyLines.Add("Distance: unavailable");
                 advice.BodyLines.Add($"Weather: {advice.WeatherLabel}");
+                AppendTroopConditionRisk(advice.RiskFactors);
                 return advice;
             }
 
@@ -488,10 +520,6 @@ namespace Game.General
             {
                 advice.BodyLines.Add(
                     $"Distance: ≈ {advice.ApproximateDistance.ToString("0.00", CultureInfo.InvariantCulture)}");
-            }
-            else if (!string.IsNullOrEmpty(advice.RouteFailureReason))
-            {
-                advice.BodyLines.Add($"Distance: route unavailable — {advice.RouteFailureReason}");
             }
 
             advice.BodyLines.Add($"Terrain: {advice.TerrainLabel}");

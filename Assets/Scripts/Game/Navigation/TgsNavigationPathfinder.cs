@@ -57,6 +57,47 @@ namespace Game.Navigation
                 if (generator != null)
                     _biomeMapData = generator.MapData;
             }
+
+            if (_biomeMapData == null)
+            {
+                TgsBiomeMapData[] maps = Resources.FindObjectsOfTypeAll<TgsBiomeMapData>();
+                for (int i = 0; i < maps.Length; i++)
+                {
+                    TgsBiomeMapData map = maps[i];
+                    if (map == null)
+                        continue;
+#if UNITY_EDITOR
+                    string path = UnityEditor.AssetDatabase.GetAssetPath(map);
+                    if (string.IsNullOrEmpty(path) || !path.StartsWith("Assets/", System.StringComparison.Ordinal))
+                        continue;
+#endif
+                    _biomeMapData = map;
+                    break;
+                }
+            }
+
+            // Last resort: empty map so pathfinding can run.
+            if (_biomeMapData == null)
+            {
+                _biomeMapData = ScriptableObject.CreateInstance<TgsBiomeMapData>();
+                _biomeMapData.name = "TgsBiomeMapData_RuntimeFallback";
+                Debug.LogWarning(
+                    $"{nameof(TgsNavigationPathfinder)}: Using runtime fallback TgsBiomeMapData. " +
+                    "Assign Assets/Scripts/World/TgsBiomeMapData.asset (or re-bake biomes) for correct lakes.");
+            }
+
+            // Empty Entries → every territory reads as Grassland. Rebuild from TGS colors.
+            if (_biomeMapData != null && !_biomeMapData.HasEntries && _tgs != null)
+            {
+                if (_biomeMapData.TryRebuildFromTerritoryColors(_tgs))
+                {
+                    _traversalSynced = false;
+                    Debug.Log(
+                        $"{nameof(TgsNavigationPathfinder)}: Rebuilt biome map from TGS territory colors " +
+                        $"({_biomeMapData.TerritoryCount} territories).");
+                }
+            }
+
             if (_terrainQuery == null)
                 _terrainQuery = FindFirstObjectByType<WorldTerrainQuery>();
         }

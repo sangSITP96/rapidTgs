@@ -9,6 +9,7 @@ using Game.Campaign.DebugTools;
 using Game.Campaign.UI;
 using Game.General.UI;
 using Game.Navigation;
+using Game.Recruitment.UI;
 using Game.UI;
 
 public sealed class DevelopModeController : MonoBehaviour
@@ -21,6 +22,7 @@ public sealed class DevelopModeController : MonoBehaviour
     [SerializeField] private Button _battleDebugButton;
     [SerializeField] private Button _campaignDebugButton;
     [SerializeField] private Button _generalButton;
+    [SerializeField] private Button _recruitmentButton;
 
     [Header("Content Panels")]
     [SerializeField] private GameObject _movementPanel;
@@ -55,6 +57,9 @@ public sealed class DevelopModeController : MonoBehaviour
     [SerializeField] private GeneralIntroPanelView _generalIntroPrefab;
     [SerializeField] private Sprite _generalPortrait;
     [SerializeField] private NavigationController _navigation;
+
+    [Header("Recruitment (Phase 19)")]
+    [SerializeField] private MercenaryRecruitmentController _recruitmentController;
 
     private const string GeneralIntroPrefabAssetPath =
         "Assets/Scripts/Game/General/Prefabs/GeneralIntroPanel.prefab";
@@ -135,6 +140,10 @@ public sealed class DevelopModeController : MonoBehaviour
         EnsureGeneralIntroPanel();
         WireGeneralIntroPanel(true);
 
+        if (_recruitmentController == null)
+            _recruitmentController = FindFirstObjectByType<MercenaryRecruitmentController>(
+                FindObjectsInactive.Include);
+
         WireSidebarButtons();
         SetMode(_defaultMode);
     }
@@ -148,11 +157,14 @@ public sealed class DevelopModeController : MonoBehaviour
     {
         EnsureCampaignDebugSidebarButton();
         EnsureGeneralSidebarButton();
+        EnsureRecruitmentSidebarButton();
 
         if (_campaignDebugButton == null)
             _campaignDebugButton = FindSidebarButtonByName("CampaignDebugButton", "Campaign Debug");
         if (_generalButton == null)
             _generalButton = FindSidebarButtonByName("GeneralButton", "General");
+        if (_recruitmentButton == null)
+            _recruitmentButton = FindSidebarButtonByName("RecruitmentButton", "Recruitment");
 
         BindButton(_movementButton, SetMovementMode);
         BindButton(_environmentButton, SetEnvironmentMode);
@@ -161,6 +173,7 @@ public sealed class DevelopModeController : MonoBehaviour
         BindButton(_battleDebugButton, SetBattleDebugMode);
         BindButton(_campaignDebugButton, SetCampaignDebugMode);
         BindButton(_generalButton, OpenGeneralIntro);
+        BindButton(_recruitmentButton, OpenRecruitment);
     }
 
     /// <summary>
@@ -240,6 +253,42 @@ public sealed class DevelopModeController : MonoBehaviour
         SetSidebarButtonLabel(buttonGo, "General");
         _generalButton = buttonGo.GetComponent<Button>();
         Debug.Log("[DevelopMode] Created missing General sidebar button at runtime.");
+    }
+
+    private void EnsureRecruitmentSidebarButton()
+    {
+        if (_recruitmentButton != null)
+            return;
+
+        Button existing = FindSidebarButtonByName("RecruitmentButton", "Recruitment");
+        if (existing != null)
+        {
+            _recruitmentButton = existing;
+            return;
+        }
+
+        Transform sidebar = FindSidebarTransform();
+        if (sidebar == null)
+        {
+            Debug.LogWarning("[DevelopMode] Sidebar not found — cannot create Recruitment button.");
+            return;
+        }
+
+        Button template = _generalButton != null
+            ? _generalButton
+            : _campaignDebugButton != null
+                ? _campaignDebugButton
+                : sidebar.GetComponentInChildren<Button>(true);
+
+        if (template == null)
+            return;
+
+        GameObject buttonGo = Instantiate(template.gameObject, sidebar);
+        buttonGo.name = "RecruitmentButton";
+        buttonGo.SetActive(true);
+        SetSidebarButtonLabel(buttonGo, "Recruitment");
+        _recruitmentButton = buttonGo.GetComponent<Button>();
+        Debug.Log("[DevelopMode] Created missing Recruitment sidebar button at runtime.");
     }
 
     private Transform FindSidebarTransform()
@@ -416,6 +465,28 @@ public sealed class DevelopModeController : MonoBehaviour
 
         _generalIntroPanel.Show(_generalPortrait);
         Debug.Log("[DevelopMode] General intro opened.");
+    }
+
+    /// <summary>
+    /// Develop Mode → Recruitment: open Phase 19 mercenary hiring panel.
+    /// </summary>
+    public void OpenRecruitment()
+    {
+        if (_recruitmentController == null)
+            _recruitmentController = FindFirstObjectByType<MercenaryRecruitmentController>(
+                FindObjectsInactive.Include);
+
+        if (_recruitmentController == null)
+        {
+            Debug.LogWarning(
+                "[DevelopMode] MercenaryRecruitmentController missing. " +
+                "Run Tools/Recruitment/Wire Recruitment Into Active Scene.");
+            return;
+        }
+
+        UiOverlayExclusive.Instance?.CloseDevelopModeUi();
+        _recruitmentController.Show();
+        Debug.Log("[DevelopMode] Recruitment panel opened.");
     }
 
     private void OnGeneralOpenNavigation()

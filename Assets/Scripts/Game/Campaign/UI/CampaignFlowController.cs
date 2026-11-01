@@ -212,6 +212,46 @@ namespace Game.Campaign.UI
             }
         }
 
+        private void EnsurePathfinderBiomeData()
+        {
+            ResolveRefs();
+            _generalAdvisor?.ResolveRefs();
+
+            var pathfinder = FindFirstObjectByType<TgsNavigationPathfinder>();
+            if (pathfinder == null)
+                return;
+
+            pathfinder.ResolveRefs();
+            if (pathfinder.BiomeMapData != null)
+            {
+                if (_biomeMapData == null)
+                    _biomeMapData = pathfinder.BiomeMapData;
+                return;
+            }
+
+            if (_biomeMapData == null)
+            {
+                var gen = FindFirstObjectByType<TgsBiomeTerritoryGenerator>();
+                if (gen != null)
+                    _biomeMapData = gen.MapData;
+            }
+
+            if (_biomeMapData == null)
+            {
+                TgsBiomeMapData[] maps = Resources.FindObjectsOfTypeAll<TgsBiomeMapData>();
+                for (int i = 0; i < maps.Length; i++)
+                {
+                    if (maps[i] == null)
+                        continue;
+                    _biomeMapData = maps[i];
+                    break;
+                }
+            }
+
+            if (_biomeMapData != null)
+                pathfinder.SetBiomeMapData(_biomeMapData);
+        }
+
         private void HideAllUi()
         {
             _offerPopup?.Hide();
@@ -531,24 +571,27 @@ namespace Game.Campaign.UI
             _pendingSelectedUnits = selected;
             _pendingApprovedRoute = null;
 
+            EnsurePathfinderBiomeData();
+
             if (!_service.TryPreviewOwnerMarchRoute(out NavigationRoute route, out string error))
             {
+                if (!string.IsNullOrEmpty(error))
+                    Debug.LogWarning($"[Campaign] Route preview failed: {error}");
+
                 GeneralRouteAdvice failed = _generalAdvisor != null
                     ? _generalAdvisor.BuildRouteAdvice(route, GetDestinationOrDefault())
                     : new GeneralRouteAdvice
                     {
                         IsValid = false,
                         FailureReason = error,
-                        GeneralMessage = "Route preview failed.",
-                        BodyLines = { error ?? "Route preview failed." }
+                        GeneralMessage = string.Empty,
+                        BodyLines = { "Distance: unavailable", "Weather: Clear" }
                     };
 
                 _troopSelectionPopup.Hide();
                 _navigation?.ShowRoutePreview(route);
                 if (_generalRouteAdvice != null)
                     _generalRouteAdvice.Show("ROUTE APPROVAL", failed, _generalPortrait);
-                else
-                    Debug.LogWarning($"[Campaign] Route preview failed: {error}");
                 return;
             }
 

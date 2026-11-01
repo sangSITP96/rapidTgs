@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0357c179060f6d49a819caa94a49c61, type: 3}
+  m_Name: MercenaryRecruitmentSettings
+  m_EditorClassIdentifier: 
+  offers:
+  - offerId: merc-infantry-squad
+    displayName: Mercenary Infantry Squad
+    unitType: 0
+    infantry: 8
+    cavalry: 0
+    archers: 0
+    goldPrice: 40
+    initialAvailable: 10
+  - offerId: merc-mixed-platoon
+    displayName: Mercenary Mixed Platoon
+    unitType: 1
+    infantry: 16
+    cavalry: 8
+    archers: 8
+    goldPrice: 120
+    initialAvailable: 5
+  - offerId: merc-archer-squad
+    displayName: Mercenary Archer Squad
+    unitType: 0
+    infantry: 0
+    cavalry: 0
+    archers: 8
+    goldPrice: 55
+    initialAvailable: 8

@@ -169,18 +169,43 @@ namespace Game.Campaign.Editor
             toggleRt.sizeDelta = new Vector2(28, 28);
 
             TMP_Text name = AddTmp(root.transform, "Name", "Platoon A", 18, FontStyles.Bold, TextAlignmentOptions.Left);
-            Stretch(name.rectTransform, 0.52f, 0.95f, 50, 90);
+            name.enableWordWrapping = false;
+            name.overflowMode = TextOverflowModes.Overflow;
+            name.enableAutoSizing = true;
+            name.fontSizeMin = 10f;
+            name.fontSizeMax = 18f;
+            name.raycastTarget = false;
+            var nameRt = name.rectTransform;
+            nameRt.anchorMin = new Vector2(0f, 0.48f);
+            nameRt.anchorMax = new Vector2(1f, 0.95f);
+            nameRt.offsetMin = new Vector2(48f, 0f);
+            nameRt.offsetMax = new Vector2(-68f, 0f);
 
             TMP_Text capacity = AddTmp(root.transform, "Capacity", "32", 18, FontStyles.Bold, TextAlignmentOptions.Right);
+            capacity.enableWordWrapping = false;
+            capacity.raycastTarget = false;
             var capRt = capacity.rectTransform;
-            capRt.anchorMin = new Vector2(1f, 0.52f);
+            capRt.anchorMin = new Vector2(1f, 0.48f);
             capRt.anchorMax = new Vector2(1f, 0.95f);
             capRt.pivot = new Vector2(1f, 1f);
-            capRt.anchoredPosition = new Vector2(-12, 0);
-            capRt.sizeDelta = new Vector2(60, 28);
+            capRt.anchoredPosition = new Vector2(-10, 0);
+            capRt.sizeDelta = new Vector2(56, 28);
 
             TMP_Text comp = AddTmp(root.transform, "Composition", "I:16 C:8 A:8", 14, FontStyles.Normal, TextAlignmentOptions.Left);
-            Stretch(comp.rectTransform, 0.08f, 0.48f, 50, 12);
+            comp.enableWordWrapping = false;
+            comp.overflowMode = TextOverflowModes.Overflow;
+            comp.enableAutoSizing = true;
+            comp.fontSizeMin = 10f;
+            comp.fontSizeMax = 14f;
+            comp.raycastTarget = false;
+            var compRt = comp.rectTransform;
+            compRt.anchorMin = new Vector2(0f, 0.08f);
+            compRt.anchorMax = new Vector2(1f, 0.48f);
+            compRt.offsetMin = new Vector2(48f, 0f);
+            compRt.offsetMax = new Vector2(-12f, 0f);
+
+            if (root.GetComponent<RectMask2D>() == null)
+                root.AddComponent<RectMask2D>();
 
             Assign(view, "_toggle", toggle);
             Assign(view, "_nameText", name);
@@ -197,6 +222,7 @@ namespace Game.Campaign.Editor
 
             TMP_Text title = AddTmp(root.transform, "Title", "MERCENARY TERMINAL", 26, FontStyles.Bold, TextAlignmentOptions.Center);
             StretchTop(title.rectTransform, 12, 40);
+            title.raycastTarget = false;
 
             TMP_Text advice = AddTmp(
                 root.transform,
@@ -207,14 +233,45 @@ namespace Game.Campaign.Editor
                 TextAlignmentOptions.TopLeft);
             Stretch(advice.rectTransform, 0.62f, 0.88f, 16, 16);
             advice.color = new Color(0.85f, 0.9f, 0.75f, 1f);
+            advice.raycastTarget = false;
 
-            var listGo = new GameObject("List", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
-            listGo.transform.SetParent(root.transform, false);
+            // Scrollable list — hired units push roster past the fixed viewport.
+            var scrollGo = new GameObject("TroopListScroll", typeof(RectTransform), typeof(Image), typeof(ScrollRect));
+            scrollGo.transform.SetParent(root.transform, false);
+            var scrollRt = scrollGo.GetComponent<RectTransform>();
+            scrollRt.anchorMin = new Vector2(0.05f, 0.28f);
+            scrollRt.anchorMax = new Vector2(0.95f, 0.60f);
+            scrollRt.offsetMin = Vector2.zero;
+            scrollRt.offsetMax = Vector2.zero;
+            var scrollBg = scrollGo.GetComponent<Image>();
+            scrollBg.color = new Color(0f, 0f, 0f, 0.001f);
+            var scroll = scrollGo.GetComponent<ScrollRect>();
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 40f;
+
+            var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(Mask));
+            viewportGo.transform.SetParent(scrollGo.transform, false);
+            var viewportRt = viewportGo.GetComponent<RectTransform>();
+            viewportRt.anchorMin = Vector2.zero;
+            viewportRt.anchorMax = Vector2.one;
+            viewportRt.offsetMin = Vector2.zero;
+            viewportRt.offsetMax = Vector2.zero;
+            var viewportImage = viewportGo.GetComponent<Image>();
+            viewportImage.color = Color.white;
+            viewportGo.GetComponent<Mask>().showMaskGraphic = false;
+
+            var listGo = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+            listGo.transform.SetParent(viewportGo.transform, false);
             var listRt = listGo.GetComponent<RectTransform>();
-            listRt.anchorMin = new Vector2(0.05f, 0.28f);
-            listRt.anchorMax = new Vector2(0.95f, 0.60f);
+            listRt.anchorMin = new Vector2(0f, 1f);
+            listRt.anchorMax = new Vector2(1f, 1f);
+            listRt.pivot = new Vector2(0.5f, 1f);
+            listRt.anchoredPosition = Vector2.zero;
             listRt.offsetMin = Vector2.zero;
             listRt.offsetMax = Vector2.zero;
+            listRt.sizeDelta = Vector2.zero;
             var vlg = listGo.GetComponent<VerticalLayoutGroup>();
             vlg.spacing = 6;
             vlg.childForceExpandHeight = false;
@@ -222,13 +279,18 @@ namespace Game.Campaign.Editor
             vlg.childControlHeight = true;
             vlg.childControlWidth = true;
             var fitter = listGo.GetComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            scroll.viewport = viewportRt;
+            scroll.content = listRt;
 
             GameObject rowPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
                 $"{PrefabFolder}/CampaignTroopSelectionRow.prefab");
 
             TMP_Text selected = AddTmp(root.transform, "SelectedTotal", "Selected: 0", 18, FontStyles.Normal, TextAlignmentOptions.Center);
             Stretch(selected.rectTransform, 0.18f, 0.28f, 20, 20);
+            selected.raycastTarget = false;
 
             Button back = AddButton(root.transform, "BackButton", "BACK", new Color(0.3f, 0.3f, 0.35f));
             PlaceButton(back.GetComponent<RectTransform>(), 0.08f, 0.48f, 0.06f, 0.16f);

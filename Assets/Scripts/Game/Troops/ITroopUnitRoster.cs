@@ -4,7 +4,7 @@ namespace Game.Troops
 {
     /// <summary>
     /// Lightweight source of selectable TroopUnits for a Commander.
-    /// Temporary Alpha uses a seed implementation — replace later with real roster/inventory.
+    /// Temporary Alpha uses a seed implementation — Phase 19 hires append into the same roster.
     /// </summary>
     public interface ITroopUnitRoster
     {
@@ -18,5 +18,10 @@ namespace Game.Troops
         bool TryMarkDeployed(TroopUnit unit);
 
         void ResetDeployedForTesting();
+
+        /// <summary>
+        /// Appends a unit to the commander's army (e.g. hired mercenary).
+        /// </summary>
+        bool TryAddUnit(TroopUnit unit);
     }
 }

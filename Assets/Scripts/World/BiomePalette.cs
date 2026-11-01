@@ -18,12 +18,32 @@ public static class BiomePalette
       }
    }
 
-   public static BiomeType ColorToBiome(Color32 c, float threshold = 5f)
+   public static BiomeType ColorToBiome(Color32 c, float threshold = 48f)
    {
-      if(TerrainColorPalette.ColorDistance(c, Lake) <= threshold) return BiomeType.Lake;
-      if(TerrainColorPalette.ColorDistance(c, Mountain) <= threshold) return BiomeType.Mountain;
-      if(TerrainColorPalette.ColorDistance(c, Forest) <= threshold) return BiomeType.Forest;
-      if(TerrainColorPalette.ColorDistance(c, Grassland) <= threshold) return BiomeType.Grassland;
-      return BiomeType.Grassland;
+      // Prefer nearest biome within threshold (colors often drift after materials/lighting).
+      float best = float.MaxValue;
+      BiomeType result = BiomeType.Grassland;
+
+      Try(c, Lake, BiomeType.Lake, threshold, ref best, ref result);
+      Try(c, Mountain, BiomeType.Mountain, threshold, ref best, ref result);
+      Try(c, Forest, BiomeType.Forest, threshold, ref best, ref result);
+      Try(c, Grassland, BiomeType.Grassland, threshold, ref best, ref result);
+      return result;
+   }
+
+   private static void Try(
+      Color32 sample,
+      Color32 candidate,
+      BiomeType biome,
+      float threshold,
+      ref float best,
+      ref BiomeType result)
+   {
+      float d = TerrainColorPalette.ColorDistance(sample, candidate);
+      if (d <= threshold && d < best)
+      {
+         best = d;
+         result = biome;
+      }
    }
 }

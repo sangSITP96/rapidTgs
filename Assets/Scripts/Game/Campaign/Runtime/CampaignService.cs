@@ -361,6 +361,14 @@ namespace Game.Campaign
                 return false;
             }
 
+            _pathfinder.ResolveRefs();
+            if (_pathfinder.BiomeMapData == null)
+            {
+                var gen = FindFirstObjectByType<TgsBiomeTerritoryGenerator>();
+                if (gen != null && gen.MapData != null)
+                    _pathfinder.SetBiomeMapData(gen.MapData);
+            }
+
             Vector3 origin = _travel.transform.position;
             route = _pathfinder.FindRouteToWorld(origin, destination);
             if (route == null || !route.IsValid)

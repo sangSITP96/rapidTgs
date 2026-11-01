@@ -74,9 +74,12 @@ namespace Game.General.UI
             {
                 for (int i = 0; i < advice.BodyLines.Count; i++)
                 {
-                    if (i > 0)
+                    string line = advice.BodyLines[i];
+                    if (IsTechnicalLine(line))
+                        continue;
+                    if (sb.Length > 0)
                         sb.Append('\n');
-                    sb.Append(advice.BodyLines[i]);
+                    sb.Append(line);
                 }
             }
 
@@ -88,6 +91,9 @@ namespace Game.General.UI
                     AdviceFactor factor = advice.RiskFactors[i];
                     if (factor == null || factor.Kind == AdviceFactorKind.Unknown)
                         continue;
+                    string text = factor.ToString();
+                    if (IsTechnicalLine(text))
+                        continue;
                     if (!wroteHeader)
                     {
                         if (sb.Length > 0)
@@ -95,11 +101,20 @@ namespace Game.General.UI
                         wroteHeader = true;
                     }
 
-                    sb.Append("\n• ").Append(factor);
+                    sb.Append("\n• ").Append(text);
                 }
             }
 
             return sb.ToString();
+        }
+
+        private static bool IsTechnicalLine(string line)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+                return true;
+            return line.IndexOf("MissingDependencies", System.StringComparison.OrdinalIgnoreCase) >= 0
+                   || line.IndexOf("TgsBiomeMapData missing", System.StringComparison.OrdinalIgnoreCase) >= 0
+                   || line.IndexOf("Route invalid", System.StringComparison.OrdinalIgnoreCase) >= 0;
         }
     }
 }

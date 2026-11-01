@@ -108,6 +108,27 @@ namespace Game.Currency
                 "Reset To Starting Balance");
         }
 
+        /// <summary>
+        /// Applies balances from local save without treating them as earn/spend transactions.
+        /// </summary>
+        public void ApplyLoadedBalances(int gold, int silver)
+        {
+            gold = Mathf.Max(0, gold);
+            silver = Mathf.Max(0, silver);
+
+            if (state.Gold != gold)
+            {
+                state.SetBalance(CurrencyType.Gold, gold);
+                NotifyBalanceChanged(CurrencyType.Gold);
+            }
+
+            if (state.Silver != silver)
+            {
+                state.SetBalance(CurrencyType.Silver, silver);
+                NotifyBalanceChanged(CurrencyType.Silver);
+            }
+        }
+
         private void NotifyBalanceChanged(CurrencyType currency)
         {
             BalanceChanged?.Invoke(currency, state.GetBalance(currency));
