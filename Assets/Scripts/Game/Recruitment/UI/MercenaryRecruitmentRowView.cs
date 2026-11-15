@@ -1,31 +1,60 @@
 using System;
+using System.Globalization;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Game.Recruitment.UI
 {
-    public sealed class MercenaryRecruitmentRowView : MonoBehaviour
+    /// <summary>
+    /// One ledger row in Mercenary Terminal:
+    /// UNIT | TROOPS | SEASON AFFINITY | TYPE | COMBAT AFFINITY | GOLD | HIRE
+    /// </summary>
+    public sealed class MercenaryRecruitmentRowView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
     {
-        [SerializeField] private Button _selectButton;
         [SerializeField] private Image _background;
-        [SerializeField] private TMP_Text _nameText;
-        [SerializeField] private TMP_Text _availabilityText;
-        [SerializeField] private TMP_Text _priceText;
-        [SerializeField] private TMP_Text _compositionText;
+        [SerializeField] private TMP_Text _unitText;
+        [SerializeField] private TMP_Text _troopsText;
+        [SerializeField] private TMP_Text _seasonText;
+        [SerializeField] private TMP_Text _typeText;
+        [SerializeField] private TMP_Text _combatText;
+        [SerializeField] private TMP_Text _goldText;
+        [SerializeField] private Button _hireButton;
+        [SerializeField] private TMP_Text _hireButtonLabel;
 
         private MercenaryOfferRuntimeState _offer;
-        private Color _normalColor = new Color(0.12f, 0.14f, 0.18f, 0.9f);
-        private Color _selectedColor = new Color(0.18f, 0.32f, 0.28f, 0.95f);
+        private bool _hovered;
+        private bool _selected;
+        private bool _hireEnabled = true;
+
+        private static readonly Color NormalColor = new Color(0.90f, 0.86f, 0.78f, 0.35f);
+        private static readonly Color HoverColor = new Color(0.78f, 0.70f, 0.55f, 0.75f);
+        private static readonly Color SelectedColor = new Color(0.72f, 0.62f, 0.48f, 0.90f);
+        private static readonly Color SoldOutColor = new Color(0.85f, 0.82f, 0.78f, 0.25f);
+        private static readonly Color InkColor = new Color(0.18f, 0.16f, 0.14f, 1f);
 
         public MercenaryOfferRuntimeState Offer => _offer;
 
         public event Action<MercenaryRecruitmentRowView> Selected;
+        public event Action<MercenaryRecruitmentRowView> HireClicked;
 
         private void Awake()
         {
-            if (_selectButton != null)
-                _selectButton.onClick.AddListener(() => Selected?.Invoke(this));
+            if (_hireButton != null)
+                _hireButton.onClick.AddListener(() => HireClicked?.Invoke(this));
+
+            ApplyTextStyle(_unitText);
+            ApplyTextStyle(_troopsText);
+            ApplyTextStyle(_seasonText);
+            ApplyTextStyle(_typeText);
+            ApplyTextStyle(_combatText);
+            ApplyTextStyle(_goldText);
+            if (_hireButtonLabel != null)
+            {
+                _hireButtonLabel.raycastTarget = false;
+                _hireButtonLabel.color = InkColor;
+            }
         }
 
         public void Bind(MercenaryOfferRuntimeState offer)
@@ -39,30 +68,97 @@ namespace Game.Recruitment.UI
             if (_offer == null)
                 return;
 
-            if (_nameText != null)
-                _nameText.text = _offer.DisplayName;
+            if (_unitText != null)
+                _unitText.text = _offer.UnitColumnLabel;
+            if (_troopsText != null)
+                _troopsText.text = _offer.TroopCount.ToString("N0", CultureInfo.InvariantCulture);
+            if (_seasonText != null)
+                _seasonText.text = _offer.SeasonAffinityLabel;
+            if (_typeText != null)
+                _typeText.text = _offer.TypeLabel;
+            if (_combatText != null)
+                _combatText.text = _offer.CombatAffinityLabel;
+            if (_goldText != null)
+                _goldText.text = _offer.GoldPrice.ToString("N0", CultureInfo.GetCultureInfo("en-US"));
 
-            if (_availabilityText != null)
-            {
-                _availabilityText.text = _offer.IsSoldOut
-                    ? "Availability: SOLD OUT"
-                    : $"Availability: {_offer.Available}";
-            }
+            if (_hireButtonLabel != null)
+                _hireButtonLabel.text = _offer.IsSoldOut ? "SOLD" : "Hire";
 
-            if (_priceText != null)
-                _priceText.text = $"Price: {_offer.GoldPrice} Gold";
-
-            if (_compositionText != null)
-            {
-                _compositionText.text =
-                    $"{_offer.UnitType}  I:{_offer.Infantry} C:{_offer.Cavalry} A:{_offer.Archers}";
-            }
+            RefreshHireInteractable();
+            RefreshBackground();
         }
 
         public void SetSelected(bool selected)
         {
-            if (_background != null)
-                _background.color = selected ? _selectedColor : _normalColor;
+            _selected = selected;
+            RefreshBackground();
+        }
+
+        public void SetHireEnabled(bool enabled)
+        {
+            _hireEnabled = enabled;
+            RefreshHireInteractable();
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            _hovered = true;
+            RefreshBackground();
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            _hovered = false;
+            RefreshBackground();
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            // Don't treat Hire button presses as row-select only — HireClicked already handles that.
+            if (_hireButton != null &&
+                eventData.pointerPress != null &&
+                eventData.pointerPress.transform.IsChildOf(_hireButton.transform))
+                return;
+
+            Selected?.Invoke(this);
+        }
+
+        private void RefreshHireInteractable()
+        {
+            if (_hireButton == null)
+                return;
+
+            bool can = _hireEnabled && _offer != null && !_offer.IsSoldOut;
+            _hireButton.interactable = can;
+        }
+
+        private void RefreshBackground()
+        {
+            if (_background == null)
+                return;
+
+            if (_offer != null && _offer.IsSoldOut)
+                _background.color = SoldOutColor;
+            else if (_selected)
+                _background.color = SelectedColor;
+            else if (_hovered)
+                _background.color = HoverColor;
+            else
+                _background.color = NormalColor;
+        }
+
+        private static void ApplyTextStyle(TMP_Text text)
+        {
+            if (text == null)
+                return;
+
+            text.raycastTarget = false;
+            text.color = InkColor;
+            text.enableWordWrapping = false;
+            text.overflowMode = TextOverflowModes.Overflow;
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 11f;
+            text.fontSizeMax = 18f;
         }
     }
 }

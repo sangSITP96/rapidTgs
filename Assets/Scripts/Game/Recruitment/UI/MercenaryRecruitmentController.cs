@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Game.Recruitment.UI
 {
     /// <summary>
-    /// Wires Recruitment panel to <see cref="MercenaryHiringService"/> and existing Gold HUD events.
+    /// Wires Mercenary Terminal panel to <see cref="MercenaryHiringService"/> and existing Gold events.
     /// </summary>
     public sealed class MercenaryRecruitmentController : MonoBehaviour
     {
@@ -81,8 +81,7 @@ namespace Game.Recruitment.UI
                 if (!_wired)
                     return;
                 panel.CloseClicked -= Hide;
-                panel.HireClicked -= OnHire;
-                panel.QuantityChanged -= UpdateHireState;
+                panel.HireClicked -= OnHireOffer;
                 panel.SelectionChanged -= OnSelectionChanged;
                 if (currency != null)
                     currency.BalanceChanged -= OnBalanceChanged;
@@ -102,8 +101,7 @@ namespace Game.Recruitment.UI
                 return;
 
             panel.CloseClicked += Hide;
-            panel.HireClicked += OnHire;
-            panel.QuantityChanged += UpdateHireState;
+            panel.HireClicked += OnHireOffer;
             panel.SelectionChanged += OnSelectionChanged;
             if (currency != null)
                 currency.BalanceChanged += OnBalanceChanged;
@@ -138,19 +136,19 @@ namespace Game.Recruitment.UI
             UpdateHireState();
         }
 
-        private void OnHire()
+        private void OnHireOffer(MercenaryOfferRuntimeState offer)
         {
             if (hiringService == null || panel == null)
                 return;
 
-            MercenaryOfferRuntimeState offer = panel.SelectedOffer;
             if (offer == null)
             {
                 panel.SetStatus("Select a mercenary.", true);
                 return;
             }
 
-            if (!hiringService.TryHire(offer.OfferId, panel.Quantity, out string error))
+            // Client mock: one Hire click = one contract (quantity 1).
+            if (!hiringService.TryHire(offer.OfferId, 1, out string error))
                 panel.SetStatus(error ?? "Hire failed.", true);
         }
 
@@ -171,17 +169,21 @@ namespace Game.Recruitment.UI
             if (panel == null || hiringService == null)
                 return;
 
-            MercenaryOfferRuntimeState offer = panel.SelectedOffer;
-            if (offer == null)
+            panel.RefreshAllHireButtons(offer =>
             {
-                panel.SetHireInteractable(false);
+                if (offer == null)
+                    return false;
+                return hiringService.CanHire(offer.OfferId, 1, out _, out _);
+            });
+
+            MercenaryOfferRuntimeState selected = panel.SelectedOffer;
+            if (selected == null)
+            {
                 panel.SetStatus(string.Empty, false);
                 return;
             }
 
-            bool can = hiringService.CanHire(offer.OfferId, panel.Quantity, out string error, out _);
-            panel.SetHireInteractable(can);
-            // Clear stale errors when quantity/selection becomes valid again.
+            bool can = hiringService.CanHire(selected.OfferId, 1, out string error, out _);
             if (can)
                 panel.SetStatus(string.Empty, false);
             else if (!string.IsNullOrEmpty(error))

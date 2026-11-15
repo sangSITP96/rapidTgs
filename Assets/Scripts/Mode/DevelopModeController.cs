@@ -459,11 +459,12 @@ public sealed class DevelopModeController : MonoBehaviour
         if (_generalIntroPanel == null)
         {
             Debug.LogWarning(
-                "[DevelopMode] GeneralIntroPanel missing. Run Tools/General/Wire General Intro Panel.");
+                "[DevelopMode] GeneralIntroPanel missing. Run Tools/General/Wire General Intro Panel " +
+                "(or ensure Assets/Resources/General/GeneralIntroPanel.prefab exists for WebGL).");
             return;
         }
 
-        _generalIntroPanel.Show(_generalPortrait);
+        _generalIntroPanel.Show(ResolveGeneralPortrait());
         Debug.Log("[DevelopMode] General intro opened.");
     }
 
@@ -546,8 +547,8 @@ public sealed class DevelopModeController : MonoBehaviour
         if (prefab == null)
         {
             Debug.LogWarning(
-                "[DevelopMode] GeneralIntroPanel prefab missing. Assign _generalIntroPrefab on " +
-                "DevelopModeController, or run Tools/General/Wire General Intro Panel.");
+                "[DevelopMode] GeneralIntroPanel prefab missing (WebGL needs Resources/General/GeneralIntroPanel). " +
+                "Assign _generalIntroPrefab or place prefab under Assets/Resources/General/.");
             return;
         }
 
@@ -568,13 +569,35 @@ public sealed class DevelopModeController : MonoBehaviour
         if (canvas != null)
             return canvas.transform;
 
-        return null;
+        // WebGL / stripped scenes: create a dedicated overlay canvas so the panel is visible.
+        var canvasGo = new GameObject(
+            "GeneralIntroCanvas",
+            typeof(RectTransform),
+            typeof(Canvas),
+            typeof(UnityEngine.UI.CanvasScaler),
+            typeof(UnityEngine.UI.GraphicRaycaster));
+        var overlay = canvasGo.GetComponent<Canvas>();
+        overlay.renderMode = RenderMode.ScreenSpaceOverlay;
+        overlay.sortingOrder = 500;
+        var scaler = canvasGo.GetComponent<UnityEngine.UI.CanvasScaler>();
+        scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        return canvasGo.transform;
     }
 
     private GeneralIntroPanelView ResolveGeneralIntroPrefab()
     {
         if (_generalIntroPrefab != null)
             return _generalIntroPrefab;
+
+        // Player builds (WebGL): Resources only — AssetDatabase is editor-only.
+        GameObject resource = Resources.Load<GameObject>(GeneralIntroPrefabResourcePath);
+        if (resource != null)
+        {
+            _generalIntroPrefab = resource.GetComponent<GeneralIntroPanelView>();
+            if (_generalIntroPrefab != null)
+                return _generalIntroPrefab;
+        }
 
 #if UNITY_EDITOR
         GameObject asset = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(GeneralIntroPrefabAssetPath);
@@ -586,11 +609,23 @@ public sealed class DevelopModeController : MonoBehaviour
         }
 #endif
 
-        GameObject resource = Resources.Load<GameObject>(GeneralIntroPrefabResourcePath);
-        if (resource != null)
-            _generalIntroPrefab = resource.GetComponent<GeneralIntroPanelView>();
-
         return _generalIntroPrefab;
+    }
+
+    private Sprite ResolveGeneralPortrait()
+    {
+        if (_generalPortrait != null)
+            return _generalPortrait;
+
+        _generalPortrait = Resources.Load<Sprite>("General/General_BG");
+#if UNITY_EDITOR
+        if (_generalPortrait == null)
+        {
+            _generalPortrait = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(
+                "Assets/Sprites/UI/General/General_BG.jpg");
+        }
+#endif
+        return _generalPortrait;
     }
 
     public void SetTravelOverlayVisible(bool visible)

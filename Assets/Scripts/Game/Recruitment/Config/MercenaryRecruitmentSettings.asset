@@ -13,27 +13,83 @@ MonoBehaviour:
   m_Name: MercenaryRecruitmentSettings
   m_EditorClassIdentifier: 
   offers:
-  - offerId: merc-infantry-squad
-    displayName: Mercenary Infantry Squad
+  - offerId: merc-company-autumn-atk
+    displayName: 
+    unitType: 2
+    infantry: 128
+    cavalry: 0
+    archers: 0
+    goldPrice: 820
+    initialAvailable: 4
+    seasonAffinity: 2
+    combatAffinity: 0
+  - offerId: merc-platoon-winter-def
+    displayName: 
+    unitType: 1
+    infantry: 32
+    cavalry: 0
+    archers: 0
+    goldPrice: 210
+    initialAvailable: 6
+    seasonAffinity: 3
+    combatAffinity: 1
+  - offerId: merc-squad-spring-hp
+    displayName: 
     unitType: 0
     infantry: 8
     cavalry: 0
     archers: 0
-    goldPrice: 40
+    goldPrice: 55
     initialAvailable: 10
-  - offerId: merc-mixed-platoon
-    displayName: Mercenary Mixed Platoon
+    seasonAffinity: 0
+    combatAffinity: 2
+  - offerId: merc-battalion-summer-atk
+    displayName: 
+    unitType: 3
+    infantry: 512
+    cavalry: 0
+    archers: 0
+    goldPrice: 2900
+    initialAvailable: 2
+    seasonAffinity: 1
+    combatAffinity: 0
+  - offerId: merc-company-winter-def
+    displayName: 
+    unitType: 2
+    infantry: 64
+    cavalry: 64
+    archers: 0
+    goldPrice: 980
+    initialAvailable: 3
+    seasonAffinity: 3
+    combatAffinity: 1
+  - offerId: merc-platoon-autumn-atk
+    displayName: 
     unitType: 1
-    infantry: 16
-    cavalry: 8
-    archers: 8
-    goldPrice: 120
+    infantry: 0
+    cavalry: 32
+    archers: 0
+    goldPrice: 240
     initialAvailable: 5
-  - offerId: merc-archer-squad
-    displayName: Mercenary Archer Squad
+    seasonAffinity: 2
+    combatAffinity: 0
+  - offerId: merc-squad-summer-atk
+    displayName: 
     unitType: 0
     infantry: 0
     cavalry: 0
     archers: 8
-    goldPrice: 55
+    goldPrice: 60
     initialAvailable: 8
+    seasonAffinity: 1
+    combatAffinity: 0
+  - offerId: merc-platoon-spring-hp
+    displayName: 
+    unitType: 1
+    infantry: 16
+    cavalry: 0
+    archers: 16
+    goldPrice: 260
+    initialAvailable: 4
+    seasonAffinity: 0
+    combatAffinity: 2

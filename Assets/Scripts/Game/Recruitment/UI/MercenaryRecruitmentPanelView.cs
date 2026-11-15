@@ -1,47 +1,41 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Game.Recruitment.UI
 {
+    /// <summary>
+    /// Mercenary Terminal ledger UI — table of offers with per-row Hire.
+    /// </summary>
     public sealed class MercenaryRecruitmentPanelView : MonoBehaviour
     {
         [SerializeField] private GameObject _root;
         [SerializeField] private TMP_Text _titleText;
         [SerializeField] private TMP_Text _goldText;
+        [SerializeField] private Transform _headerRoot;
         [SerializeField] private Transform _listRoot;
         [SerializeField] private MercenaryRecruitmentRowView _rowPrefab;
-        [SerializeField] private TMP_Text _selectedNameText;
-        [SerializeField] private TMP_Text _quantityText;
-        [SerializeField] private TMP_Text _totalText;
         [SerializeField] private TMP_Text _statusText;
-        [SerializeField] private Button _minusButton;
-        [SerializeField] private Button _plusButton;
-        [SerializeField] private Button _hireButton;
         [SerializeField] private Button _closeButton;
+        [SerializeField] private ScrollRect _scrollRect;
 
         private readonly List<MercenaryRecruitmentRowView> _rows = new List<MercenaryRecruitmentRowView>();
         private MercenaryOfferRuntimeState _selected;
-        private int _quantity = 1;
 
         public event Action CloseClicked;
-        public event Action HireClicked;
-        public event Action QuantityChanged;
+        public event Action<MercenaryOfferRuntimeState> HireClicked;
         public event Action<MercenaryOfferRuntimeState> SelectionChanged;
 
         public MercenaryOfferRuntimeState SelectedOffer => _selected;
-        public int Quantity => _quantity;
+
+        /// <summary>Always 1 — terminal hires one contract per Hire click (client mock).</summary>
+        public int Quantity => 1;
 
         private void Awake()
         {
-            if (_minusButton != null)
-                _minusButton.onClick.AddListener(OnMinus);
-            if (_plusButton != null)
-                _plusButton.onClick.AddListener(OnPlus);
-            if (_hireButton != null)
-                _hireButton.onClick.AddListener(() => HireClicked?.Invoke());
             if (_closeButton != null)
                 _closeButton.onClick.AddListener(() => CloseClicked?.Invoke());
         }
@@ -53,7 +47,7 @@ namespace Game.Recruitment.UI
                 _root.SetActive(true);
 
             if (_titleText != null)
-                _titleText.text = "MERCENARY RECRUITMENT";
+                _titleText.text = "MERCENARY TERMINAL";
         }
 
         public void Hide()
@@ -66,7 +60,9 @@ namespace Game.Recruitment.UI
         public void SetGold(int gold)
         {
             if (_goldText != null)
-                _goldText.text = $"Gold: {gold}";
+            {
+                _goldText.text = "Gold: " + gold.ToString("N0", CultureInfo.GetCultureInfo("en-US"));
+            }
         }
 
         public void SetStatus(string message, bool isError = false)
@@ -76,8 +72,8 @@ namespace Game.Recruitment.UI
 
             _statusText.text = message ?? string.Empty;
             _statusText.color = isError
-                ? new Color(1f, 0.45f, 0.4f)
-                : new Color(0.7f, 0.9f, 0.7f);
+                ? new Color(0.55f, 0.15f, 0.12f, 1f)
+                : new Color(0.20f, 0.35f, 0.18f, 1f);
         }
 
         public void BindOffers(IReadOnlyList<MercenaryOfferRuntimeState> offers)
@@ -88,7 +84,6 @@ namespace Game.Recruitment.UI
             if (offers == null || _rowPrefab == null || _listRoot == null)
             {
                 _selected = null;
-                RefreshSelectionUi();
                 return;
             }
 
@@ -103,6 +98,7 @@ namespace Game.Recruitment.UI
                 row.gameObject.SetActive(true);
                 row.Bind(offer);
                 row.Selected += OnRowSelected;
+                row.HireClicked += OnRowHireClicked;
                 _rows.Add(row);
 
                 if (keepId != null && offer.OfferId == keepId)
@@ -110,14 +106,14 @@ namespace Game.Recruitment.UI
             }
 
             if (keepRow != null)
-                SelectRow(keepRow);
+                SelectRow(keepRow, notify: false);
             else if (_rows.Count > 0)
-                SelectRow(_rows[0]);
+                SelectRow(_rows[0], notify: false);
             else
-            {
                 _selected = null;
-                RefreshSelectionUi();
-            }
+
+            if (_scrollRect != null)
+                _scrollRect.verticalNormalizedPosition = 1f;
         }
 
         public void RefreshSelectedOfferState()
@@ -125,99 +121,78 @@ namespace Game.Recruitment.UI
             for (int i = 0; i < _rows.Count; i++)
                 _rows[i]?.Refresh();
 
-            if (_selected != null)
+            if (_selected == null)
+                return;
+
+            for (int i = 0; i < _rows.Count; i++)
             {
-                // Re-bind selected pointer from refreshed rows.
-                for (int i = 0; i < _rows.Count; i++)
+                if (_rows[i] != null && _rows[i].Offer != null &&
+                    _rows[i].Offer.OfferId == _selected.OfferId)
                 {
-                    if (_rows[i] != null && _rows[i].Offer != null &&
-                        _rows[i].Offer.OfferId == _selected.OfferId)
-                    {
-                        _selected = _rows[i].Offer;
-                        break;
-                    }
+                    _selected = _rows[i].Offer;
+                    break;
                 }
             }
-
-            ClampQuantity();
-            RefreshSelectionUi();
         }
 
+        public void SetRowHireEnabled(string offerId, bool enabled)
+        {
+            for (int i = 0; i < _rows.Count; i++)
+            {
+                MercenaryRecruitmentRowView row = _rows[i];
+                if (row == null || row.Offer == null)
+                    continue;
+                if (row.Offer.OfferId == offerId)
+                    row.SetHireEnabled(enabled);
+            }
+        }
+
+        public void RefreshAllHireButtons(Func<MercenaryOfferRuntimeState, bool> canHire)
+        {
+            for (int i = 0; i < _rows.Count; i++)
+            {
+                MercenaryRecruitmentRowView row = _rows[i];
+                if (row == null || row.Offer == null)
+                    continue;
+                bool ok = canHire != null && canHire(row.Offer);
+                row.SetHireEnabled(ok);
+            }
+        }
+
+        /// <summary>Legacy no-op — Hire is per-row now.</summary>
         public void SetHireInteractable(bool interactable)
         {
-            if (_hireButton != null)
-                _hireButton.interactable = interactable;
+            // Kept for controller compatibility; per-row buttons are updated via RefreshAllHireButtons.
         }
 
         private void OnRowSelected(MercenaryRecruitmentRowView row)
         {
-            SelectRow(row);
+            SelectRow(row, notify: true);
         }
 
-        private void SelectRow(MercenaryRecruitmentRowView row)
+        private void OnRowHireClicked(MercenaryRecruitmentRowView row)
+        {
+            if (row == null || row.Offer == null)
+                return;
+
+            SelectRow(row, notify: true);
+            HireClicked?.Invoke(row.Offer);
+        }
+
+        private void SelectRow(MercenaryRecruitmentRowView row, bool notify)
         {
             for (int i = 0; i < _rows.Count; i++)
-                _rows[i]?.SetSelected(_rows[i] == row);
+            {
+                if (_rows[i] == null)
+                    continue;
+                // Avoid re-entrancy via SetSelected → Selected event.
+                bool isTarget = _rows[i] == row;
+                _rows[i].SetSelected(isTarget);
+            }
 
             _selected = row != null ? row.Offer : null;
-            _quantity = 1;
-            ClampQuantity();
-            RefreshSelectionUi();
-            SelectionChanged?.Invoke(_selected);
-        }
-
-        private void OnMinus()
-        {
-            _quantity = Mathf.Max(1, _quantity - 1);
-            ClampQuantity();
-            RefreshSelectionUi();
-            QuantityChanged?.Invoke();
-        }
-
-        private void OnPlus()
-        {
-            _quantity++;
-            ClampQuantity();
-            RefreshSelectionUi();
-            QuantityChanged?.Invoke();
-        }
-
-        private void ClampQuantity()
-        {
-            int max = _selected != null ? Mathf.Max(0, _selected.Available) : 0;
-            if (max <= 0)
-            {
-                _quantity = 0;
-                return;
-            }
-
-            if (_quantity < 1)
-                _quantity = 1;
-            if (_quantity > max)
-                _quantity = max;
-        }
-
-        private void RefreshSelectionUi()
-        {
-            if (_selectedNameText != null)
-            {
-                _selectedNameText.text = _selected != null
-                    ? $"Selected: {_selected.DisplayName}"
-                    : "Selected: —";
-            }
-
-            if (_quantityText != null)
-                _quantityText.text = _quantity.ToString();
-
-            int total = _selected != null ? _selected.GoldPrice * Mathf.Max(0, _quantity) : 0;
-            if (_totalText != null)
-                _totalText.text = $"Total: {total} Gold";
-
-            bool canAdjust = _selected != null && _selected.Available > 0;
-            if (_minusButton != null)
-                _minusButton.interactable = canAdjust && _quantity > 1;
-            if (_plusButton != null)
-                _plusButton.interactable = canAdjust && _quantity < _selected.Available;
+            if (notify)
+                SelectionChanged?.Invoke(_selected);
         }
 
         private void ClearRows()
@@ -227,6 +202,7 @@ namespace Game.Recruitment.UI
                 if (_rows[i] == null)
                     continue;
                 _rows[i].Selected -= OnRowSelected;
+                _rows[i].HireClicked -= OnRowHireClicked;
                 Destroy(_rows[i].gameObject);
             }
 
